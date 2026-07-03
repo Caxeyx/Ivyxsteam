@@ -430,6 +430,11 @@ export default function App() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-left">
                   {[
                     { 
+                      name: "World Cup 1", 
+                      url: "https://xyzstreams.st/wc-1-embed.html", 
+                      desc: "World Cup Live Match (HTML Embed)",
+                    },
+                    { 
                       name: "FIFA SD", 
                       url: "https://krxplor.github.io/mpd/mpd1.html", 
                       desc: "Live Match (HTML Player)",
@@ -883,8 +888,9 @@ export default function App() {
                 <iframe 
                   src={activeChannel.url} 
                   className="w-full h-full border-0"
+                  scrolling="no"
+                  allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
                   allowFullScreen
-                  allow="autoplay; encrypted-media"
                   sandbox="allow-scripts allow-same-origin allow-presentation"
                 />
               ) : (
