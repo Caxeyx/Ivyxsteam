@@ -1,0 +1,6 @@
+{
+  "name": "Football",
+  "description": "A minimal, responsive streaming web application with a modern, dark mode compatible interface.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
