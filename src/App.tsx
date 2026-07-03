@@ -15,6 +15,7 @@ import { WinProbability } from "@/components/WinProbability";
 import { MatchModal } from "@/components/MatchModal";
 import { ShakaPlayer } from "./components/ShakaPlayer";
 import { HlsPlayer } from "./components/HlsPlayer";
+import * as clientApi from "./lib/clientApi";
 
 export default function App() {
   const [activeVideo, setActiveVideo] = useState<VideoContent>(defaultContent[0]);
@@ -49,8 +50,7 @@ export default function App() {
       const fetchSources = async () => {
         setIsLoadingSources(true);
         try {
-          const res = await fetch(`/api/sources?imdbId=${activeShowImdbId}`);
-          const data = await res.json();
+          const data = await clientApi.fetchSources(activeShowImdbId);
           if (data && data.sources) {
             // filter out duplicates by name
             const uniqueSources = data.sources.reduce((acc: any[], current: any) => {
@@ -189,8 +189,7 @@ export default function App() {
   useEffect(() => {
     async function fetchMatches() {
       try {
-        const res = await fetch("/api/matches");
-        const data = await res.json();
+        const data = await clientApi.fetchMatches();
         if (data && data.matches) {
           const live = data.matches.filter((m: any) => m.status === 'IN_PLAY' || m.status === 'PAUSED');
           const upcoming = data.matches.filter((m: any) => m.status === 'SCHEDULED' || m.status === 'TIMED').sort((a: any, b: any) => new Date(a.utcDate).getTime() - new Date(b.utcDate).getTime());
@@ -210,9 +209,7 @@ export default function App() {
     async function fetchMovies(query = "") {
       setIsMoviesLoading(true);
       try {
-        const url = query ? `/api/movies?q=${encodeURIComponent(query)}` : "/api/movies";
-        const res = await fetch(url);
-        const data = await res.json();
+        const data = await clientApi.fetchMovies(query);
         if (data && data.movies) {
           setMovies(data.movies);
         }
@@ -240,8 +237,7 @@ export default function App() {
     setExpandedMatchTab('details');
     if (!matchDetails[id]) {
       try {
-        const res = await fetch(`/api/matches/${id}`);
-        const data = await res.json();
+        const data = await clientApi.fetchMatchDetails(id);
         setMatchDetails(prev => ({ ...prev, [id]: data }));
       } catch (error) {
         console.error("Failed to fetch match details", error);
@@ -249,8 +245,7 @@ export default function App() {
     }
     if (competitionId && !matchStandings[competitionId]) {
       try {
-        const res = await fetch(`/api/competitions/${competitionId}/standings`);
-        const data = await res.json();
+        const data = await clientApi.fetchStandings(competitionId);
         if (data && data.standings) {
           setMatchStandings(prev => ({ ...prev, [competitionId]: data.standings }));
         }
@@ -778,12 +773,12 @@ export default function App() {
           {/* Featured Player Section */}
           <section className="max-w-6xl mx-auto mt-6 rounded-3xl overflow-hidden shadow-sm bg-white dark:bg-zinc-900 ring-1 ring-zinc-200/50 dark:ring-zinc-800/50">
             <div className="aspect-video w-full bg-black relative">
-              <HlsPlayer url="/api/proxy/bbc.m3u8" />
+              <HlsPlayer url={clientApi.getStreamUrl()} />
             </div>
             <div className="p-6 md:p-8">
               <div className="flex items-center gap-2 mb-3">
                 <span className="px-2.5 py-1 rounded-full bg-[#FF4081]/10 dark:bg-[#FF4081]/20 text-[#FF4081] text-xs font-semibold uppercase tracking-wide">
-                  Live TV
+                  {clientApi.getFeaturedVideoInfo().category}
                 </span>
                 <span className="text-zinc-400 dark:text-zinc-500 text-sm flex items-center gap-1">
                   <span>•</span>
@@ -791,10 +786,10 @@ export default function App() {
                 </span>
               </div>
               <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50 mb-2">
-                BBC 4K
+                {clientApi.getFeaturedVideoInfo().title}
               </h1>
               <p className="text-zinc-600 dark:text-zinc-400 text-sm sm:text-base max-w-3xl leading-relaxed">
-                Watch BBC live in stunning 4K resolution.
+                {clientApi.getFeaturedVideoInfo().description}
               </p>
             </div>
           </section>
