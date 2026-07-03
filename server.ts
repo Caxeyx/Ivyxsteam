@@ -246,6 +246,117 @@ async function startServer() {
     }
   });
 
+  // Generic HLS stream proxy for World Cup channels
+  const STREAM_MAP: Record<string, string> = {
+    "fox": "https://inproviszon.st/fox-xyz-waUvqaAACr.m3u8",
+    "fox4k": "https://inproviszon.st/fox4k-usa.m3u8",
+    "bbc": "https://inproviszon.st/bbc-xyz-waUvqaAACr.m3u8",
+    "tsn": "https://inproviszon.st/tsn1-xyz-waUvqaAACr.m3u8",
+    "tsn4k": "https://inproviszon.st/tsn4k-xyz-waUvqaAACr.m3u8",
+    "bein": "https://inproviszon.st/bein-xyz-waUvqaAACr.m3u8",
+    "bein4k": "https://inproviszon.st/bein4k-xyz-waUvqaAACr.m3u8",
+    "beinfr": "https://inproviszon.st/bein12fr-xyz.m3u8",
+    "telemundo": "https://inproviszon.st/telemundo-xyz-waUvqaAACr.m3u8",
+    "telemundo4k": "https://inproviszon.st/telemundo4k-xyz.m3u8",
+    "fussball4k": "https://inproviszon.st/fussballtv1uhd-de.m3u8",
+  };
+
+  app.get("/api/proxy/stream/:channel", async (req, res) => {
+    try {
+      const channel = req.params.channel.replace('.m3u8', '');
+      const streamUrl = STREAM_MAP[channel];
+      if (!streamUrl) {
+        return res.status(404).json({ error: "Channel not found" });
+      }
+
+      const response = await fetch(streamUrl, {
+        headers: {
+          "Referer": "https://xyzstreams-6h9.pages.dev/",
+          "Origin": "https://xyzstreams-6h9.pages.dev",
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
+        }
+      });
+      if (!response.ok) {
+        return res.status(response.status).send("Failed to fetch stream");
+      }
+      res.setHeader("Content-Type", "application/vnd.apple.mpegurl");
+      res.setHeader("Access-Control-Allow-Origin", "*");
+      res.setHeader("Access-Control-Allow-Headers", "*");
+      let text = await response.text();
+      
+      // Rewrite relative segment URLs to go through our proxy
+      const baseUrl = streamUrl.substring(0, streamUrl.lastIndexOf('/') + 1);
+      text = text.replace(/^(?!#)(?!https?:\/\/)(.+\.ts.*)$/gm, (match) => {
+        return `/api/proxy/segment?url=${encodeURIComponent(baseUrl + match)}`;
+      });
+      text = text.replace(/^(?!#)(?!https?:\/\/)(.+\.m3u8.*)$/gm, (match) => {
+        return `/api/proxy/segment?url=${encodeURIComponent(baseUrl + match)}`;
+      });
+      // Also rewrite absolute URLs from the same host
+      text = text.replace(/(https:\/\/inproviszon\.st\/[^\s]+)/g, (match) => {
+        return `/api/proxy/segment?url=${encodeURIComponent(match)}`;
+      });
+      
+      res.send(text);
+    } catch (error) {
+      console.error("Stream proxy error:", error);
+      res.status(500).json({ error: "Failed to proxy stream" });
+    }
+  });
+
+  // Proxy for individual .ts video segments and sub-playlists
+  app.get("/api/proxy/segment", async (req, res) => {
+    try {
+      const segmentUrl = req.query.url as string;
+      if (!segmentUrl) {
+        return res.status(400).send("Missing url parameter");
+      }
+
+      const response = await fetch(segmentUrl, {
+        headers: {
+          "Referer": "https://xyzstreams-6h9.pages.dev/",
+          "Origin": "https://xyzstreams-6h9.pages.dev",
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
+        }
+      });
+      if (!response.ok) {
+        return res.status(response.status).send("Failed to fetch segment");
+      }
+      
+      const contentType = response.headers.get("content-type");
+      if (contentType) {
+        res.setHeader("Content-Type", contentType);
+      }
+      res.setHeader("Access-Control-Allow-Origin", "*");
+      res.setHeader("Access-Control-Allow-Headers", "*");
+      
+      // If it's a sub-playlist (.m3u8), rewrite URLs inside it too
+      if (segmentUrl.includes('.m3u8')) {
+        let text = await response.text();
+        const baseUrl = segmentUrl.substring(0, segmentUrl.lastIndexOf('/') + 1);
+        text = text.replace(/^(?!#)(?!https?:\/\/)(.+\.ts.*)$/gm, (match) => {
+          return `/api/proxy/segment?url=${encodeURIComponent(baseUrl + match)}`;
+        });
+        text = text.replace(/^(?!#)(?!https?:\/\/)(.+\.m3u8.*)$/gm, (match) => {
+          return `/api/proxy/segment?url=${encodeURIComponent(baseUrl + match)}`;
+        });
+        text = text.replace(/(https:\/\/inproviszon\.st\/[^\s]+)/g, (match) => {
+          return `/api/proxy/segment?url=${encodeURIComponent(match)}`;
+        });
+        res.setHeader("Content-Type", "application/vnd.apple.mpegurl");
+        res.send(text);
+      } else {
+        // Binary segment data - pipe it through
+        const buffer = await response.arrayBuffer();
+        res.send(Buffer.from(buffer));
+      }
+    } catch (error) {
+      console.error("Segment proxy error:", error);
+      res.status(500).send("Failed to proxy segment");
+    }
+  });
+
+  // Legacy BBC proxy (kept for backward compatibility)
   app.get("/api/proxy/bbc.m3u8", async (req, res) => {
     try {
       const response = await fetch("https://inproviszon.st/bbc-4k.m3u8", {

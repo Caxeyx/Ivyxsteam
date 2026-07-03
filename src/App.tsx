@@ -438,39 +438,120 @@ export default function App() {
                   <div className="w-16 h-16 bg-zinc-50 dark:bg-zinc-800/50 rounded-full flex items-center justify-center mx-auto mb-6">
                     <Tv className="w-8 h-8 text-[#FF4081]" />
                   </div>
-                  <h3 className="text-xl font-bold text-zinc-900 dark:text-zinc-50 mb-4">Open IPTV Channels</h3>
+                  <h3 className="text-xl font-bold text-zinc-900 dark:text-zinc-50 mb-4">🏆 FIFA World Cup 2026 — Live Channels</h3>
                   <p className="text-zinc-500 dark:text-zinc-400 max-w-2xl mx-auto leading-relaxed text-sm sm:text-base">
-                    Live sports broadcasting rights for premium networks (ESPN, Peacock, etc.) are restricted. Below are some free, open IPTV channels you can stream directly in the browser to test the player functionality.
+                    Watch the FIFA World Cup 2026 live with multiple broadcast feeds. Choose your preferred network and language below.
                   </p>
                 </div>
+
+                {/* Category Badges */}
+                <div className="flex flex-wrap gap-2 mb-6 justify-center">
+                  {["All", "🇺🇸 English", "🇬🇧 UK", "🇨🇦 Canada", "🇪🇸 Spanish", "🇫🇷 French", "⚽ Arabic", "🇩🇪 German"].map(tag => (
+                    <button key={tag} className="px-3 py-1.5 text-xs font-semibold rounded-full border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800/50 text-zinc-600 dark:text-zinc-300 hover:border-[#FF4081]/50 hover:text-[#FF4081] transition-all">
+                      {tag}
+                    </button>
+                  ))}
+                </div>
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-left">
                   {[
                     { 
-                      name: "World Cup 1", 
-                      url: "https://xyzstreams.st/wc-5-embed.html", 
-                      desc: "World Cup Live Match (HTML Embed)",
+                      name: "🇺🇸 FOX", 
+                      url: "/api/proxy/stream/fox", 
+                      desc: "World Cup Live — FOX (English)",
+                      badge: "LIVE"
                     },
                     { 
-                      name: "World Cup 2 (TSN)", 
-                      url: "https://xyzstreams.st/wc-8-embed.html", 
-                      desc: "World Cup Live - TSN (HTML Embed)",
+                      name: "🇺🇸 FOX 4K", 
+                      url: "/api/proxy/stream/fox4k", 
+                      desc: "World Cup Live — FOX 4K HEVC (English)",
+                      badge: "4K"
+                    },
+                    { 
+                      name: "🇬🇧 BBC", 
+                      url: "/api/proxy/stream/bbc", 
+                      desc: "World Cup Live — BBC (English, UK)",
+                      badge: "LIVE"
+                    },
+                    { 
+                      name: "🇨🇦 TSN", 
+                      url: "/api/proxy/stream/tsn", 
+                      desc: "World Cup Live — TSN (English, Canada)",
+                      badge: "LIVE"
+                    },
+                    { 
+                      name: "🇨🇦 TSN 4K", 
+                      url: "/api/proxy/stream/tsn4k", 
+                      desc: "World Cup Live — TSN 4K (English, Canada)",
+                      badge: "4K"
+                    },
+                    { 
+                      name: "⚽ beIN Max", 
+                      url: "/api/proxy/stream/bein", 
+                      desc: "World Cup Live — beIN Sports Max (Arabic)",
+                      badge: "LIVE"
+                    },
+                    { 
+                      name: "⚽ beIN Max 4K", 
+                      url: "/api/proxy/stream/bein4k", 
+                      desc: "World Cup Live — beIN Sports Max 4K (Arabic)",
+                      badge: "4K"
+                    },
+                    { 
+                      name: "🇫🇷 beIN Sports 1", 
+                      url: "/api/proxy/stream/beinfr", 
+                      desc: "World Cup Live — beIN Sports 1 (French)",
+                      badge: "LIVE"
+                    },
+                    { 
+                      name: "🇺🇸 Telemundo", 
+                      url: "/api/proxy/stream/telemundo", 
+                      desc: "World Cup Live — Telemundo (Spanish)",
+                      badge: "LIVE"
+                    },
+                    { 
+                      name: "🇺🇸 Telemundo 4K", 
+                      url: "/api/proxy/stream/telemundo4k", 
+                      desc: "World Cup Live — Telemundo 4K (Spanish)",
+                      badge: "4K"
+                    },
+                    { 
+                      name: "🇩🇪 FUSBALL.TV 1 4K", 
+                      url: "/api/proxy/stream/fussball4k", 
+                      desc: "World Cup Live — FUSBALL.TV 1 4K (German)",
+                      badge: "4K"
+                    },
+                    { 
+                      name: "NBC Sports", 
+                      url: "https://d4whmvwm0rdvi.cloudfront.net/10007/99993008/hls/master.m3u8?ads.xumo_channelId=99993008", 
+                      desc: "Sports News Network"
                     },
                     { 
                       name: "FIFA SD", 
                       url: "https://krxplor.github.io/mpd/mpd1.html", 
                       desc: "Live Match (HTML Player)",
+                      badge: "LIVE"
                     },
-                    { name: "FOX", url: "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8", desc: "Live Sports & Events (Simulated)" },
-                    { name: "Peacock", url: "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8", desc: "Premier League & More (Simulated)" },
-                    { name: "FOX 1", url: "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8", desc: "Premium Sports (Simulated)" },
-                    { name: "NBC Sports", url: "https://d4whmvwm0rdvi.cloudfront.net/10007/99993008/hls/master.m3u8?ads.xumo_channelId=99993008", desc: "Sports News" },
-                    { name: "FTF Sports", url: "https://1657061170.rsc.cdn77.org/HLS/FTF-LINEAR.m3u8", desc: "Sports" },
-                    { name: "Test Stream (Mux)", url: "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8", desc: "Testing Player" }
+                    { 
+                      name: "FTF Sports", 
+                      url: "https://1657061170.rsc.cdn77.org/HLS/FTF-LINEAR.m3u8", 
+                      desc: "Live Sports Broadcasting"
+                    },
                   ].filter(channel => 
                     channel.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
                     channel.desc.toLowerCase().includes(searchQuery.toLowerCase())
-                  ).map((channel, i) => (
-                    <button key={i} onClick={() => setActiveChannel(channel)} className="w-full text-left p-4 rounded-xl border border-zinc-200 dark:border-zinc-800 hover:border-[#FF4081]/50 bg-zinc-50 dark:bg-zinc-800/50 hover:bg-[#FF4081]/5 transition-all group flex items-start gap-4">
+                  ).map((channel: any, i) => (
+                    <button key={i} onClick={() => setActiveChannel(channel)} className="w-full text-left p-4 rounded-xl border border-zinc-200 dark:border-zinc-800 hover:border-[#FF4081]/50 bg-zinc-50 dark:bg-zinc-800/50 hover:bg-[#FF4081]/5 transition-all group flex items-start gap-4 relative overflow-hidden">
+                      {channel.badge && (
+                        <span className={`absolute top-3 right-3 text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                          channel.badge === '4K' 
+                            ? 'bg-purple-500/10 text-purple-500 dark:bg-purple-400/20 dark:text-purple-400' 
+                            : 'bg-red-500/10 text-red-500 dark:bg-red-400/20 dark:text-red-400 animate-pulse'
+                        }`}>
+                          {channel.badge === 'LIVE' && <span className="inline-block w-1.5 h-1.5 bg-red-500 rounded-full mr-1 align-middle"></span>}
+                          {channel.badge}
+                        </span>
+                      )}
                       <div className="w-10 h-10 rounded-lg bg-white dark:bg-zinc-900 flex items-center justify-center shrink-0 shadow-sm relative overflow-hidden">
                         <Play className="w-5 h-5 text-zinc-400 group-hover:text-[#FF4081] transition-colors absolute z-10" />
                         <div className="absolute inset-0 bg-[#FF4081]/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
@@ -483,31 +564,13 @@ export default function App() {
                   ))}
                 </div>
                 {[
-                  { 
-                    name: "World Cup 1", 
-                    url: "https://xyzstreams.st/wc-5-embed.html", 
-                    desc: "World Cup Live Match (HTML Embed)",
-                  },
-                  { 
-                    name: "World Cup 2 (TSN)", 
-                    url: "https://xyzstreams.st/wc-8-embed.html", 
-                    desc: "World Cup Live - TSN (HTML Embed)",
-                  },
-                  { 
-                    name: "FIFA SD", 
-                    url: "https://krxplor.github.io/mpd/mpd1.html", 
-                    desc: "Live Match (HTML Player)",
-                  },
-                  { name: "FOX", url: "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8", desc: "Live Sports & Events (Simulated)" },
-                  { name: "Peacock", url: "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8", desc: "Premier League & More (Simulated)" },
-                  { name: "FOX 1", url: "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8", desc: "Premium Sports (Simulated)" },
-                  { name: "NBC Sports", url: "https://d4whmvwm0rdvi.cloudfront.net/10007/99993008/hls/master.m3u8?ads.xumo_channelId=99993008", desc: "Sports News" },
-                  { name: "FTF Sports", url: "https://1657061170.rsc.cdn77.org/HLS/FTF-LINEAR.m3u8", desc: "Sports" },
-                  { name: "Test Stream (Mux)", url: "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8", desc: "Testing Player" }
-                ].filter(channel => 
-                  channel.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                  channel.desc.toLowerCase().includes(searchQuery.toLowerCase())
-                ).length === 0 && (
+                    "🇺🇸 FOX", "🇺🇸 FOX 4K", "🇬🇧 BBC", "🇨🇦 TSN", "🇨🇦 TSN 4K",
+                    "⚽ beIN Max", "⚽ beIN Max 4K", "🇫🇷 beIN Sports 1",
+                    "🇺🇸 Telemundo", "🇺🇸 Telemundo 4K", "🇩🇪 FUSBALL.TV 1 4K",
+                    "NBC Sports", "FTF Sports"
+                ].filter(name => 
+                  name.toLowerCase().includes(searchQuery.toLowerCase())
+                ).length === 0 && searchQuery.trim() && (
                   <div className="py-12 text-center text-zinc-500 dark:text-zinc-400">
                     No channels found matching "{searchQuery}".
                   </div>
@@ -965,11 +1028,14 @@ export default function App() {
                   scrolling="no"
                   allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
                   allowFullScreen
+                  referrerPolicy="origin"
+                  sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-presentation"
                 />
+              ) : (activeChannel.url.includes('.m3u8') || activeChannel.url.includes('/api/proxy/stream/')) ? (
+                <HlsPlayer url={activeChannel.url} />
               ) : (
                 <ReactPlayer
-                  src={activeChannel.url}
-                  autoPlay
+                  url={activeChannel.url}
                   playing
                   controls
                   width="100%"
