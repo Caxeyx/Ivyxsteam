@@ -14,6 +14,7 @@ import { motion } from "motion/react";
 import { WinProbability } from "@/components/WinProbability";
 import { MatchModal } from "@/components/MatchModal";
 import { ShakaPlayer } from "./components/ShakaPlayer";
+import { HlsPlayer } from "./components/HlsPlayer";
 
 export default function App() {
   const [activeVideo, setActiveVideo] = useState<VideoContent>(defaultContent[0]);
@@ -775,27 +776,14 @@ export default function App() {
           )}
 
           {/* Featured Player Section */}
-          <section className="max-w-6xl mx-auto rounded-3xl overflow-hidden shadow-sm bg-white dark:bg-zinc-900 ring-1 ring-zinc-200/50 dark:ring-zinc-800/50">
+          <section className="max-w-6xl mx-auto mt-6 rounded-3xl overflow-hidden shadow-sm bg-white dark:bg-zinc-900 ring-1 ring-zinc-200/50 dark:ring-zinc-800/50">
             <div className="aspect-video w-full bg-black relative">
-              <YouTube
-                videoId={activeVideo.videoId}
-                opts={{
-                  width: '100%',
-                  height: '100%',
-                  playerVars: {
-                    autoplay: 1,
-                    modestbranding: 1,
-                    rel: 0,
-                  },
-                }}
-                className="absolute inset-0 w-full h-full"
-                iframeClassName="w-full h-full"
-              />
+              <HlsPlayer url="/api/proxy/bbc.m3u8" />
             </div>
             <div className="p-6 md:p-8">
               <div className="flex items-center gap-2 mb-3">
                 <span className="px-2.5 py-1 rounded-full bg-[#FF4081]/10 dark:bg-[#FF4081]/20 text-[#FF4081] text-xs font-semibold uppercase tracking-wide">
-                  {activeVideo.category}
+                  Live TV
                 </span>
                 <span className="text-zinc-400 dark:text-zinc-500 text-sm flex items-center gap-1">
                   <span>•</span>
@@ -803,53 +791,11 @@ export default function App() {
                 </span>
               </div>
               <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50 mb-2">
-                {activeVideo.title}
+                BBC 4K
               </h1>
               <p className="text-zinc-600 dark:text-zinc-400 text-sm sm:text-base max-w-3xl leading-relaxed">
-                {activeVideo.description}
+                Watch BBC live in stunning 4K resolution.
               </p>
-            </div>
-          </section>
-
-          {/* Grid Section */}
-          <section className="max-w-6xl mx-auto">
-            <h2 className="text-xl font-bold text-zinc-900 dark:text-zinc-50 mb-6 flex items-center justify-between">
-              Recommended for You
-              <span className="text-sm font-medium text-[#FF4081] cursor-pointer hover:underline">View All</span>
-            </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {filteredContent.map(content => (
-                <div 
-                  key={content.id} 
-                  className="group cursor-pointer flex flex-col gap-3"
-                  onClick={() => {
-                    setActiveVideo(content);
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                  }}
-                >
-                  <div className="aspect-video w-full rounded-2xl overflow-hidden bg-zinc-100 dark:bg-zinc-800 relative shadow-sm ring-1 ring-zinc-200/50 dark:ring-zinc-800/50 transition-all group-hover:shadow-md group-hover:ring-zinc-300 dark:group-hover:ring-zinc-700">
-                    <img 
-                      src={content.thumbnailUrl} 
-                      alt={content.title}
-                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                    />
-                    <div className="absolute inset-0 bg-zinc-900/0 group-hover:bg-zinc-900/40 transition-colors flex items-center justify-center">
-                      <div className="w-12 h-12 rounded-full bg-white/90 dark:bg-zinc-900/90 backdrop-blur-sm text-zinc-900 dark:text-zinc-50 flex items-center justify-center opacity-0 group-hover:opacity-100 transform translate-y-4 group-hover:translate-y-0 transition-all duration-300 shadow-lg">
-                        <Play className="w-5 h-5 ml-1 fill-zinc-900 dark:fill-zinc-50" />
-                      </div>
-                    </div>
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-zinc-900 dark:text-zinc-100 leading-tight group-hover:text-[#FF4081] transition-colors line-clamp-1">{content.title}</h3>
-                    <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">{content.category}</p>
-                  </div>
-                </div>
-              ))}
-              {filteredContent.length === 0 && (
-                <div className="col-span-full py-12 text-center text-zinc-500 dark:text-zinc-400">
-                  No content found matching "{searchQuery}".
-                </div>
-              )}
             </div>
           </section>
             </>

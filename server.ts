@@ -1,10 +1,9 @@
 import express from "express";
 import path from "path";
-import { createServer as createViteServer } from "vite";
 
 async function startServer() {
   const app = express();
-  const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
+  const PORT = 3000;
 
   // API routes FIRST
   app.get("/api/movies", async (req, res) => {
@@ -17,6 +16,11 @@ async function startServer() {
       }
 
       const tvMazeRes = await fetch(url);
+      if (!tvMazeRes.ok) throw new Error(`TVMaze API returned status ${tvMazeRes.status}`);
+      const contentType = tvMazeRes.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        throw new Error("TVMaze API did not return JSON");
+      }
       const data = await tvMazeRes.json();
       
       let movies = [];
@@ -94,76 +98,50 @@ async function startServer() {
 
   app.get("/api/matches", async (req, res) => {
     try {
-      // Fetch games and teams from worldcup26.ir
-      const [gamesRes, teamsRes] = await Promise.all([
-        fetch('https://worldcup26.ir/get/games'),
-        fetch('https://worldcup26.ir/get/teams')
-      ]);
+      // WC2022 Men's matches
+      const response = await fetch('https://api.fifa.com/api/v3/calendar/matches?idCompetition=17&idSeason=255711&count=100');
+      if (!response.ok) throw new Error("Failed to fetch matches from FIFA");
       
-      const gamesData = await gamesRes.json();
-      const teamsData = await teamsRes.json();
-      const games = gamesData.games || [];
-      const teams = teamsData.teams || [];
+      const data = await response.json();
+      const results = data.Results || [];
       
-      // Create team map for easy lookup
-      const teamMap = new Map();
-      teams.forEach((t: any) => {
-        teamMap.set(t.id, t);
-      });
-      
-      // Parse dates and determine what is live/upcoming. Since this is for WC2026, 
-      // we'll just mock current date if it's not during the WC, but let's just return all of them
-      // and let the frontend figure it out, or we can fake "live" matches for demo if needed.
-      
-      const matches = games.map((game: any) => {
-        const homeTeam = teamMap.get(game.home_team_id) || {};
-        const awayTeam = teamMap.get(game.away_team_id) || {};
-        
+      const matches = results.map((game: any) => {
         let status = 'SCHEDULED';
-        if (game.time_elapsed === 'finished') status = 'FINISHED';
-        else if (game.time_elapsed !== 'notstarted' && game.time_elapsed) status = 'IN_PLAY';
-        
-        // Convert "MM/DD/YYYY HH:mm" to ISO
-        // Note: game.local_date e.g., "06/11/2026 13:00"
-        let utcDate = new Date().toISOString();
-        if (game.local_date) {
-           const [datePart, timePart] = game.local_date.split(' ');
-           if (datePart && timePart) {
-             const [mm, dd, yyyy] = datePart.split('/');
-             utcDate = new Date(`${yyyy}-${mm}-${dd}T${timePart}:00.000-05:00`).toISOString(); // assuming EST/CDT, just use offset
-           }
-        }
-        
+        if (game.MatchStatus === 0 && game.HomeTeamScore !== null) status = 'FINISHED';
+        else if (game.MatchStatus === 3 || game.MatchStatus === 1) status = 'IN_PLAY'; 
+
+        const homeName = game.Home?.TeamName?.[0]?.Description || "TBD";
+        const awayName = game.Away?.TeamName?.[0]?.Description || "TBD";
+        const homeFlag = game.Home?.PictureUrl ? game.Home.PictureUrl.replace('{format}', 'sq').replace('{size}', '2') : "";
+        const awayFlag = game.Away?.PictureUrl ? game.Away.PictureUrl.replace('{format}', 'sq').replace('{size}', '2') : "";
+
         return {
-          id: parseInt(game.id),
-          utcDate,
+          id: parseInt(game.IdMatch) || Math.random(),
+          utcDate: game.Date,
           status,
           homeTeam: { 
-            id: parseInt(game.home_team_id), 
-            name: game.home_team_name_en || game.home_team_label, 
-            shortName: homeTeam.fifa_code || game.home_team_name_en?.substring(0,3).toUpperCase(), 
-            crest: homeTeam.flag 
+            id: parseInt(game.Home?.IdTeam) || 0,
+            name: homeName, 
+            shortName: game.Home?.Abbreviation || homeName.substring(0,3).toUpperCase(),
+            crest: homeFlag
           },
           awayTeam: { 
-            id: parseInt(game.away_team_id), 
-            name: game.away_team_name_en || game.away_team_label, 
-            shortName: awayTeam.fifa_code || game.away_team_name_en?.substring(0,3).toUpperCase(), 
-            crest: awayTeam.flag 
+            id: parseInt(game.Away?.IdTeam) || 0,
+            name: awayName, 
+            shortName: game.Away?.Abbreviation || awayName.substring(0,3).toUpperCase(),
+            crest: awayFlag
           },
           score: {
             fullTime: { 
-              home: game.home_score !== undefined && game.home_score !== "null" ? parseInt(game.home_score) : null, 
-              away: game.away_score !== undefined && game.away_score !== "null" ? parseInt(game.away_score) : null 
+              home: game.HomeTeamScore !== null ? game.HomeTeamScore : null,
+              away: game.AwayTeamScore !== null ? game.AwayTeamScore : null
             }
           },
-          scorers: {
-            home: game.home_scorers !== "null" && game.home_scorers ? game.home_scorers.replace(/[\{\}“”"]/g, '').split(',') : [],
-            away: game.away_scorers !== "null" && game.away_scorers ? game.away_scorers.replace(/[\{\}“”"]/g, '').split(',') : []
-          },
-          minute: game.time_elapsed !== 'notstarted' && game.time_elapsed !== 'finished' ? game.time_elapsed : undefined,
-          competition: { id: 2026, name: "FIFA World Cup 2026", emblem: "" },
-          stage: game.group,
-          venue: game.stadium_id // we can map stadium later if needed
+          scorers: { home: [], away: [] },
+          minute: game.MatchTime ? game.MatchTime.replace("'", "") : undefined,
+          competition: { id: parseInt(game.IdCompetition) || 17, name: game.CompetitionName?.[0]?.Description || "FIFA World Cup", emblem: "" },
+          stage: game.GroupName?.[0]?.Description || game.StageName?.[0]?.Description || "",
+          venue: game.Stadium?.Name?.[0]?.Description || ""
         };
       });
       
@@ -177,34 +155,29 @@ async function startServer() {
   app.get("/api/matches/:id", async (req, res) => {
     try {
       const { id } = req.params;
-      const [gamesRes, stadiumsRes] = await Promise.all([
-        fetch('https://worldcup26.ir/get/games'),
-        fetch('https://worldcup26.ir/get/stadiums')
-      ]);
-      const gamesData = await gamesRes.json();
-      const stadiumsData = await stadiumsRes.json();
-      const games = gamesData.games || [];
-      const stadiums = stadiumsData.stadiums || [];
+      const response = await fetch(`https://api.fifa.com/api/v3/calendar/matches?idCompetition=17&idSeason=255711&count=100`);
+      if (!response.ok) throw new Error("Failed to fetch matches from FIFA");
       
-      const game = games.find((g: any) => g.id === id);
+      const data = await response.json();
+      const results = data.Results || [];
+      const game = results.find((m: any) => m.IdMatch === id);
+      
       if (!game) return res.status(404).json({ error: "Match not found" });
       
-      const stadium = stadiums.find((s: any) => s.id === game.stadium_id);
-      
       res.json({
-        id: game.id,
-        venue: stadium ? `${stadium.name_en}, ${stadium.city_en}` : null,
-        stage: game.group,
+        id: parseInt(game.IdMatch),
+        venue: game.Stadium?.Name?.[0]?.Description || null,
+        stage: game.GroupName?.[0]?.Description || game.StageName?.[0]?.Description || "",
         score: {
           halfTime: { home: null, away: null },
           fullTime: { 
-            home: game.home_score !== undefined && game.home_score !== "null" ? parseInt(game.home_score) : null, 
-            away: game.away_score !== undefined && game.away_score !== "null" ? parseInt(game.away_score) : null 
+            home: game.HomeTeamScore !== null ? game.HomeTeamScore : null,
+            away: game.AwayTeamScore !== null ? game.AwayTeamScore : null
           }
         },
         scorers: {
-          home: game.home_scorers !== "null" && game.home_scorers ? game.home_scorers.replace(/[\{\}“”"]/g, '').split(',') : [],
-          away: game.away_scorers !== "null" && game.away_scorers ? game.away_scorers.replace(/[\{\}“”"]/g, '').split(',') : []
+          home: [],
+          away: []
         }
       });
     } catch (error) {
@@ -215,44 +188,56 @@ async function startServer() {
 
   app.get("/api/competitions/:id/standings", async (req, res) => {
     try {
-      const [groupsRes, teamsRes] = await Promise.all([
-        fetch('https://worldcup26.ir/get/groups'),
-        fetch('https://worldcup26.ir/get/teams')
-      ]);
-      const groupsData = await groupsRes.json();
-      const teamsData = await teamsRes.json();
-      const groups = groupsData.groups || [];
-      const teams = teamsData.teams || [];
+      const response = await fetch('https://api.fifa.com/api/v3/calendar/17/255711/285063/Standing');
+      if (!response.ok) throw new Error("Failed to fetch standings");
       
-      const teamMap = new Map();
-      teams.forEach((t: any) => teamMap.set(t.id, t));
+      const data = await response.json();
+      const results = data.Results || [];
       
-      // format to match football-data structure
-      const standings = groups.map((g: any) => ({
-        stage: 'GROUP_STAGE',
-        type: 'TOTAL',
-        group: `GROUP_${g.letter}`,
-        table: g.teams.map((t: any, index: number) => {
-          const teamDetails = teamMap.get(t.team_id) || {};
-          return {
-            position: index + 1,
-            team: {
-              id: parseInt(t.team_id),
-              name: teamDetails.name_en,
-              shortName: teamDetails.fifa_code,
-              crest: teamDetails.flag
-            },
-            playedGames: parseInt(t.played),
-            won: parseInt(t.won),
-            draw: parseInt(t.drawn),
-            lost: parseInt(t.lost),
-            points: parseInt(t.pts),
-            goalsFor: parseInt(t.gf),
-            goalsAgainst: parseInt(t.ga),
-            goalDifference: parseInt(t.gd)
-          };
-        })
-      }));
+      const groupsMap = new Map();
+      results.forEach((row: any) => {
+        const groupName = row.Group?.[0]?.Description || "Group";
+        if (!groupsMap.has(groupName)) {
+          groupsMap.set(groupName, []);
+        }
+        groupsMap.get(groupName).push(row);
+      });
+      
+      const standings = Array.from(groupsMap.entries()).map(([groupName, teams]: [string, any[]]) => {
+        // Sort teams by Position
+        teams.sort((a, b) => (a.Position || 0) - (b.Position || 0));
+        
+        return {
+          stage: 'GROUP_STAGE',
+          type: 'TOTAL',
+          group: groupName,
+          table: teams.map((t: any) => {
+            const teamName = t.Team?.Name?.[0]?.Description || "TBD";
+            const teamFlag = t.Team?.PictureUrl ? t.Team.PictureUrl.replace('{format}', 'sq').replace('{size}', '2') : "";
+            
+            return {
+              position: t.Position,
+              team: {
+                id: parseInt(t.IdTeam) || 0,
+                name: teamName,
+                shortName: t.Team?.Abbreviation || teamName.substring(0,3).toUpperCase(),
+                crest: teamFlag
+              },
+              playedGames: t.Played,
+              won: t.Won,
+              draw: t.Drawn,
+              lost: t.Lost,
+              points: t.Points,
+              goalsFor: t.For,
+              goalsAgainst: t.Against,
+              goalDifference: t.GoalsDiference
+            };
+          })
+        };
+      });
+      
+      // Sort groups alphabetically (e.g. Group A, Group B)
+      standings.sort((a, b) => a.group.localeCompare(b.group));
       
       res.json({ standings });
     } catch (error) {
@@ -261,8 +246,30 @@ async function startServer() {
     }
   });
 
+  app.get("/api/proxy/bbc.m3u8", async (req, res) => {
+    try {
+      const response = await fetch("https://inproviszon.st/bbc-4k.m3u8", {
+        headers: {
+          "Referer": "https://vileembeds.pages.dev/",
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+        }
+      });
+      if (!response.ok) {
+        return res.status(response.status).send("Failed to fetch stream");
+      }
+      res.setHeader("Content-Type", "application/vnd.apple.mpegurl");
+      res.setHeader("Access-Control-Allow-Origin", "*");
+      const text = await response.text();
+      res.send(text);
+    } catch (error) {
+      console.error("Proxy error:", error);
+      res.status(500).json({ error: "Failed to proxy stream" });
+    }
+  });
+
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {
+    const { createServer: createViteServer } = await import("vite");
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: "spa",

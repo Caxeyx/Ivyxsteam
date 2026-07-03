@@ -29,7 +29,11 @@ export function ShakaPlayer({ url, drm }: ShakaPlayerProps) {
       if (!window.shaka) return;
       
       // Install built-in polyfills to patch browser incompatibilities
-      window.shaka.polyfill.installAll();
+      try {
+        window.shaka.polyfill.installAll();
+      } catch (e) {
+        console.warn("Shaka polyfills could not be fully installed:", e);
+      }
 
       if (!window.shaka.Player.isBrowserSupported()) {
         setError("Your browser does not support DASH / DRM playback. Please try another browser like Chrome or Firefox.");
@@ -123,7 +127,7 @@ export function ShakaPlayer({ url, drm }: ShakaPlayerProps) {
       return () => {
         isMounted = false;
         clearInterval(checkInterval);
-        if (script) {
+        if (script && document.body.contains(script)) {
           script.removeEventListener("load", handleScriptLoad);
         }
         if (player) {
