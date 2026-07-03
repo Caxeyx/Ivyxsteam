@@ -451,6 +451,11 @@ export default function App() {
                       desc: "World Cup Live Match (HTML Embed)",
                     },
                     { 
+                      name: "World Cup 2 (TSN)", 
+                      url: "https://xyzstreams.st/wc-8-embed.html", 
+                      desc: "World Cup Live - TSN (HTML Embed)",
+                    },
+                    { 
                       name: "FIFA SD", 
                       url: "https://krxplor.github.io/mpd/mpd1.html", 
                       desc: "Live Match (HTML Player)",
@@ -482,6 +487,11 @@ export default function App() {
                     name: "World Cup 1", 
                     url: "https://xyzstreams.st/wc-5-embed.html", 
                     desc: "World Cup Live Match (HTML Embed)",
+                  },
+                  { 
+                    name: "World Cup 2 (TSN)", 
+                    url: "https://xyzstreams.st/wc-8-embed.html", 
+                    desc: "World Cup Live - TSN (HTML Embed)",
                   },
                   { 
                     name: "FIFA SD", 
