@@ -38,12 +38,26 @@ export default function App() {
   const [activeViewTab, setActiveViewTab] = useState<'Home' | 'Recent' | 'Favorites' | 'Movies' | 'Settings' | 'Channels'>('Home');
   const [updatedMatchIds, setUpdatedMatchIds] = useState<Set<number>>(new Set());
   const [movies, setMovies] = useState<any[]>([]);
-  const [movieSearchQuery, setMovieSearchQuery] = useState("");
   const [isMoviesLoading, setIsMoviesLoading] = useState(false);
   const [activeShowImdbId, setActiveShowImdbId] = useState<string | null>(null);
   const [activeShowSources, setActiveShowSources] = useState<any[]>([]);
   const [isLoadingSources, setIsLoadingSources] = useState(false);
   const [activeChannel, setActiveChannel] = useState<{name: string, url: string, type?: string, drm?: any} | null>(null);
+
+  const getSearchPlaceholder = () => {
+    switch (activeViewTab) {
+      case 'Home':
+      case 'Recent':
+      case 'Favorites':
+        return "Search matches, teams...";
+      case 'Movies':
+        return "Search shows and movies...";
+      case 'Channels':
+        return "Search live channels...";
+      default:
+        return "Search...";
+    }
+  };
 
   useEffect(() => {
     if (activeShowImdbId) {
@@ -220,13 +234,15 @@ export default function App() {
       }
     }
     
+    if (activeViewTab !== 'Movies') return;
+
     // debounce search
     const timeoutId = setTimeout(() => {
-      fetchMovies(movieSearchQuery);
+      fetchMovies(searchQuery);
     }, 500);
     
     return () => clearTimeout(timeoutId);
-  }, [movieSearchQuery]);
+  }, [searchQuery, activeViewTab]);
 
   const handleExpandMatch = async (id: number, competitionId?: number) => {
     if (expandedMatchId === id) {
@@ -302,15 +318,15 @@ export default function App() {
               </a>
             </div>
             <div className="mt-8 flex flex-col gap-2">
-              <SidebarLink link={{ label: "Home", href: "#", icon: <Home className="h-5 w-5 shrink-0 text-neutral-700 dark:text-neutral-200" /> }} onClick={(e) => { e.preventDefault(); setActiveViewTab('Home'); setSidebarOpen(false); }} />
-              <SidebarLink link={{ label: "TV Shows & Movies", href: "#", icon: <Film className="h-5 w-5 shrink-0 text-neutral-700 dark:text-neutral-200" /> }} onClick={(e) => { e.preventDefault(); setActiveViewTab('Movies'); setSidebarOpen(false); }} />
-              <SidebarLink link={{ label: "TV Channels", href: "#", icon: <Tv className="h-5 w-5 shrink-0 text-neutral-700 dark:text-neutral-200" /> }} onClick={(e) => { e.preventDefault(); setActiveViewTab('Channels'); setSidebarOpen(false); }} />
-              <SidebarLink link={{ label: "Recent", href: "#", icon: <Clock className="h-5 w-5 shrink-0 text-neutral-700 dark:text-neutral-200" /> }} onClick={(e) => { e.preventDefault(); setActiveViewTab('Recent'); setSidebarOpen(false); }} />
-              <SidebarLink link={{ label: "Favorites", href: "#", icon: <Star className="h-5 w-5 shrink-0 text-neutral-700 dark:text-neutral-200" /> }} onClick={(e) => { e.preventDefault(); setActiveViewTab('Favorites'); setSidebarOpen(false); }} />
+              <SidebarLink link={{ label: "Home", href: "#", icon: <Home className="h-5 w-5 shrink-0 text-neutral-700 dark:text-neutral-200" /> }} onClick={(e) => { e.preventDefault(); setActiveViewTab('Home'); setSearchQuery(""); setSidebarOpen(false); }} />
+              <SidebarLink link={{ label: "TV Shows & Movies", href: "#", icon: <Film className="h-5 w-5 shrink-0 text-neutral-700 dark:text-neutral-200" /> }} onClick={(e) => { e.preventDefault(); setActiveViewTab('Movies'); setSearchQuery(""); setSidebarOpen(false); }} />
+              <SidebarLink link={{ label: "TV Channels", href: "#", icon: <Tv className="h-5 w-5 shrink-0 text-neutral-700 dark:text-neutral-200" /> }} onClick={(e) => { e.preventDefault(); setActiveViewTab('Channels'); setSearchQuery(""); setSidebarOpen(false); }} />
+              <SidebarLink link={{ label: "Recent", href: "#", icon: <Clock className="h-5 w-5 shrink-0 text-neutral-700 dark:text-neutral-200" /> }} onClick={(e) => { e.preventDefault(); setActiveViewTab('Recent'); setSearchQuery(""); setSidebarOpen(false); }} />
+              <SidebarLink link={{ label: "Favorites", href: "#", icon: <Star className="h-5 w-5 shrink-0 text-neutral-700 dark:text-neutral-200" /> }} onClick={(e) => { e.preventDefault(); setActiveViewTab('Favorites'); setSearchQuery(""); setSidebarOpen(false); }} />
             </div>
           </div>
           <div>
-            <SidebarLink link={{ label: "Settings", href: "#", icon: <Settings className="h-5 w-5 shrink-0 text-neutral-700 dark:text-neutral-200" /> }} onClick={(e) => { e.preventDefault(); setActiveViewTab('Settings'); setSidebarOpen(false); }} />
+            <SidebarLink link={{ label: "Settings", href: "#", icon: <Settings className="h-5 w-5 shrink-0 text-neutral-700 dark:text-neutral-200" /> }} onClick={(e) => { e.preventDefault(); setActiveViewTab('Settings'); setSearchQuery(""); setSidebarOpen(false); }} />
           </div>
         </SidebarBody>
       </Sidebar>
@@ -323,14 +339,14 @@ export default function App() {
             <button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-2 text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-50 rounded-md cursor-pointer transition-colors md:hidden">
               <Menu className="w-5 h-5" />
             </button>
-            <div className="relative hidden sm:block">
+            <div className="relative w-40 sm:w-72">
               <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
               <input 
                 type="text" 
-                placeholder="Search matches, teams..." 
+                placeholder={getSearchPlaceholder()} 
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
-                className="pl-10 pr-4 py-2 w-72 bg-zinc-100 dark:bg-zinc-800/50 border-transparent rounded-full text-sm focus:bg-white dark:focus:bg-zinc-800 focus:border-zinc-300 dark:focus:border-zinc-600 focus:ring-2 focus:ring-[#FF4081]/20 dark:focus:ring-[#FF4081]/20 outline-none transition-all dark:text-zinc-100 dark:placeholder-zinc-500"
+                className="w-full pl-10 pr-4 py-2 bg-zinc-100 dark:bg-zinc-800/50 border-transparent rounded-full text-sm focus:bg-white dark:focus:bg-zinc-800 focus:border-zinc-300 dark:focus:border-zinc-600 focus:ring-2 focus:ring-[#FF4081]/20 dark:focus:ring-[#FF4081]/20 outline-none transition-all dark:text-zinc-100 dark:placeholder-zinc-500"
               />
             </div>
           </div>
@@ -445,7 +461,10 @@ export default function App() {
                     { name: "NBC Sports", url: "https://d4whmvwm0rdvi.cloudfront.net/10007/99993008/hls/master.m3u8?ads.xumo_channelId=99993008", desc: "Sports News" },
                     { name: "FTF Sports", url: "https://1657061170.rsc.cdn77.org/HLS/FTF-LINEAR.m3u8", desc: "Sports" },
                     { name: "Test Stream (Mux)", url: "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8", desc: "Testing Player" }
-                  ].map((channel, i) => (
+                  ].filter(channel => 
+                    channel.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                    channel.desc.toLowerCase().includes(searchQuery.toLowerCase())
+                  ).map((channel, i) => (
                     <button key={i} onClick={() => setActiveChannel(channel)} className="w-full text-left p-4 rounded-xl border border-zinc-200 dark:border-zinc-800 hover:border-[#FF4081]/50 bg-zinc-50 dark:bg-zinc-800/50 hover:bg-[#FF4081]/5 transition-all group flex items-start gap-4">
                       <div className="w-10 h-10 rounded-lg bg-white dark:bg-zinc-900 flex items-center justify-center shrink-0 shadow-sm relative overflow-hidden">
                         <Play className="w-5 h-5 text-zinc-400 group-hover:text-[#FF4081] transition-colors absolute z-10" />
@@ -458,6 +477,31 @@ export default function App() {
                     </button>
                   ))}
                 </div>
+                {[
+                  { 
+                    name: "World Cup 1", 
+                    url: "https://xyzstreams.st/wc-1-embed.html", 
+                    desc: "World Cup Live Match (HTML Embed)",
+                  },
+                  { 
+                    name: "FIFA SD", 
+                    url: "https://krxplor.github.io/mpd/mpd1.html", 
+                    desc: "Live Match (HTML Player)",
+                  },
+                  { name: "FOX", url: "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8", desc: "Live Sports & Events (Simulated)" },
+                  { name: "Peacock", url: "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8", desc: "Premier League & More (Simulated)" },
+                  { name: "FOX 1", url: "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8", desc: "Premium Sports (Simulated)" },
+                  { name: "NBC Sports", url: "https://d4whmvwm0rdvi.cloudfront.net/10007/99993008/hls/master.m3u8?ads.xumo_channelId=99993008", desc: "Sports News" },
+                  { name: "FTF Sports", url: "https://1657061170.rsc.cdn77.org/HLS/FTF-LINEAR.m3u8", desc: "Sports" },
+                  { name: "Test Stream (Mux)", url: "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8", desc: "Testing Player" }
+                ].filter(channel => 
+                  channel.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                  channel.desc.toLowerCase().includes(searchQuery.toLowerCase())
+                ).length === 0 && (
+                  <div className="py-12 text-center text-zinc-500 dark:text-zinc-400">
+                    No channels found matching "{searchQuery}".
+                  </div>
+                )}
               </div>
             </section>
           ) : activeViewTab === 'Settings' ? (
@@ -604,21 +648,11 @@ export default function App() {
             </section>
           ) : activeViewTab === 'Movies' ? (
             <section className="max-w-6xl mx-auto min-h-[60vh]">
-              <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
+              <div className="flex items-center justify-between mb-8">
                 <h2 className="text-2xl font-bold text-zinc-900 dark:text-zinc-50 flex items-center gap-2">
                   <Film className="w-6 h-6 text-[#FF4081]" />
                   TV Shows & Movies
                 </h2>
-                <div className="relative max-w-sm w-full">
-                  <input
-                    type="text"
-                    value={movieSearchQuery}
-                    onChange={(e) => setMovieSearchQuery(e.target.value)}
-                    placeholder="Search shows and movies..."
-                    className="w-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-full px-5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#FF4081]/50 pl-11 shadow-sm transition-all text-zinc-900 dark:text-zinc-100"
-                  />
-                  <Search className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" />
-                </div>
               </div>
 
               {isMoviesLoading ? (
