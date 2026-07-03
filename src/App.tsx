@@ -715,6 +715,36 @@ export default function App() {
             </section>
           ) : activeViewTab === 'Home' ? (
             <>
+            {/* World Cup Promo Banner */}
+            <div className="max-w-6xl mx-auto bg-gradient-to-r from-[#FF4081] via-purple-600 to-indigo-700 rounded-3xl p-6 md:p-8 text-white relative overflow-hidden shadow-lg border border-white/10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+              <div className="absolute inset-0 bg-grid-white/[0.05] pointer-events-none" />
+              <div className="absolute -right-10 -bottom-10 w-40 h-40 bg-pink-500 rounded-full filter blur-3xl opacity-50 pointer-events-none" />
+              
+              <div className="relative z-10 space-y-2">
+                <span className="inline-block px-2.5 py-1 rounded-full bg-white/20 text-white text-[10px] font-bold uppercase tracking-widest">
+                  Live Stream Available
+                </span>
+                <h2 className="text-2xl md:text-3xl font-extrabold tracking-tight">
+                  FIFA World Cup Live Channels!
+                </h2>
+                <p className="text-white/80 text-sm md:text-base max-w-xl">
+                  Watch live World Cup matches, scores, and streams directly in the TV Channels section.
+                </p>
+              </div>
+              
+              <button 
+                onClick={() => {
+                  setActiveViewTab('Channels');
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+                className="relative z-10 px-6 py-3 bg-white text-zinc-900 font-bold rounded-xl hover:bg-zinc-100 active:scale-95 transition-all shadow-md flex items-center gap-2 group cursor-pointer self-start md:self-auto shrink-0"
+              >
+                <Tv className="w-5 h-5 text-[#FF4081]" />
+                Go to TV Channels
+                <ChevronRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+              </button>
+            </div>
+
           {/* Upcoming Matches Section */}
           {matches.upcoming.length > 0 && (
             <section id="upcoming-matches" className="max-w-6xl mx-auto">
