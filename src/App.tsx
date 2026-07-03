@@ -447,7 +447,7 @@ export default function App() {
                   {[
                     { 
                       name: "World Cup 1", 
-                      url: "https://xyzstreams.st/wc-1-embed.html", 
+                      url: "https://xyzstreams.st/wc-5-embed.html", 
                       desc: "World Cup Live Match (HTML Embed)",
                     },
                     { 
@@ -480,7 +480,7 @@ export default function App() {
                 {[
                   { 
                     name: "World Cup 1", 
-                    url: "https://xyzstreams.st/wc-1-embed.html", 
+                    url: "https://xyzstreams.st/wc-5-embed.html", 
                     desc: "World Cup Live Match (HTML Embed)",
                   },
                   { 
