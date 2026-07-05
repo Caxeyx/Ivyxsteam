@@ -246,18 +246,103 @@ async function startServer() {
     }
   });
 
+  // Helper to scrape active match channels from timstreams
+  async function getLiveChannelsMap() {
+    const map: Record<string, string> = {};
+    try {
+      const homeRes = await fetch("https://timstreams.live/", {
+        headers: {
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
+        }
+      });
+      if (!homeRes.ok) return map;
+      const homeHtml = await homeRes.text();
+      
+      const matchRegex = /\/match\/[a-zA-Z0-9-]+/g;
+      const matches = Array.from(new Set(homeHtml.match(matchRegex) || []));
+      
+      for (const matchPath of matches) {
+        try {
+          const matchRes = await fetch(`https://timstreams.live${matchPath}`, {
+            headers: {
+              "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
+            }
+          });
+          if (!matchRes.ok) continue;
+          const matchHtml = await matchRes.text();
+          
+          const watchRegex = /\/watch\/([a-zA-Z0-9-]+)/g;
+          let match;
+          while ((match = watchRegex.exec(matchHtml)) !== null) {
+            const watchPath = match[1];
+            const lower = watchPath.toLowerCase();
+            
+            let channelKey = "";
+            if (lower.startsWith("fox-4k")) channelKey = "fox4k";
+            else if (lower.startsWith("fox")) channelKey = "fox";
+            else if (lower.startsWith("bbc") || lower.startsWith("uk")) channelKey = "bbc";
+            else if (lower.startsWith("tsn4k")) channelKey = "tsn4k";
+            else if (lower.startsWith("tsn")) channelKey = "tsn";
+            else if (lower.startsWith("bein4k") || lower.startsWith("bein-sports-4k")) channelKey = "bein4k";
+            else if (lower.startsWith("bein")) channelKey = "bein";
+            else if (lower.startsWith("telemundo-4k")) channelKey = "telemundo4k";
+            else if (lower.startsWith("telemundo")) channelKey = "telemundo";
+            else if (lower.startsWith("fussball")) channelKey = "fussball4k";
+            
+            if (channelKey && !map[channelKey]) {
+              map[channelKey] = `https://www.timstreams.one/embed/${watchPath}`;
+            }
+          }
+        } catch (err) {
+          console.error(`[Scraper] Error parsing match ${matchPath}:`, err);
+        }
+      }
+    } catch (e) {
+      console.error("[Scraper] Error fetching live channels:", e);
+    }
+    return map;
+  }
+
+  const FALLBACK_MAP: Record<string, string> = {
+    "fox": "https://xyzstreams.st/wc-1-embed.html",
+    "fox4k": "https://xyzstreams.st/wc-5-embed.html",
+    "bbc": "https://xyzstreams.st/wc-3-embed.html",
+    "tsn": "https://xyzstreams.st/wc-7-embed.html",
+    "tsn4k": "https://xyzstreams.st/wc-8-embed.html",
+    "bein": "https://xyzstreams.st/wc-17-embed.html",
+    "bein4k": "https://xyzstreams.st/wc-10-embed.html",
+    "beinfr": "https://xyzstreams.st/wc-22-embed.html",
+    "telemundo": "https://xyzstreams.st/wc-6-embed.html",
+    "telemundo4k": "https://xyzstreams.st/wc-6-embed.html",
+    "fussball4k": "https://xyzstreams.st/wc-14-embed.html",
+  };
+
+  app.get("/api/live-channels", async (req, res) => {
+    try {
+      const liveMap = await getLiveChannelsMap();
+      const result: Record<string, string> = {};
+      for (const key of Object.keys(FALLBACK_MAP)) {
+        result[key] = liveMap[key] || FALLBACK_MAP[key];
+      }
+      res.json(result);
+    } catch (e) {
+      console.error(e);
+      res.json(FALLBACK_MAP);
+    }
+  });
+
   // Generic HLS stream proxy for World Cup channels
   const STREAM_MAP: Record<string, string> = {
-    "fox": "https://inproviszon.st/fox-xyz-waUvqaAACr.m3u8",
+    "fox": "https://inproviszon.st/fox-xyz-waUvqaAAC.m3u8",
     "fox4k": "https://inproviszon.st/fox4k-usa.m3u8",
-    "bbc": "https://inproviszon.st/bbc-xyz-waUvqaAACr.m3u8",
+    "bbc": "https://inproviszon.st/itv-xyz-waUvqaAACr.m3u8",
     "tsn": "https://inproviszon.st/tsn1-xyz-waUvqaAACr.m3u8",
     "tsn4k": "https://inproviszon.st/tsn4k-xyz-waUvqaAACr.m3u8",
     "bein": "https://inproviszon.st/bein-xyz-waUvqaAACr.m3u8",
     "bein4k": "https://inproviszon.st/bein4k-xyz-waUvqaAACr.m3u8",
     "beinfr": "https://inproviszon.st/bein12fr-xyz.m3u8",
     "telemundo": "https://inproviszon.st/telemundo-xyz-waUvqaAACr.m3u8",
-    "telemundo4k": "https://inproviszon.st/telemundo4k-xyz.m3u8",
+    "telemundo4k": "https://inproviszon.st/telemundo-xyz-waUvqaAACr.m3u8",
     "fussball4k": "https://inproviszon.st/fussballtv1uhd-de.m3u8",
   };
 
@@ -271,7 +356,7 @@ async function startServer() {
 
       const response = await fetch(streamUrl, {
         headers: {
-          "Referer": "https://xyzstreams-6h9.pages.dev/",
+          "Referer": "https://xyzstreams-6h9.pages.dev/worldcup26-2-0703",
           "Origin": "https://xyzstreams-6h9.pages.dev",
           "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
         }
@@ -314,7 +399,7 @@ async function startServer() {
 
       const response = await fetch(segmentUrl, {
         headers: {
-          "Referer": "https://xyzstreams-6h9.pages.dev/",
+          "Referer": "https://xyzstreams-6h9.pages.dev/worldcup26-2-0703",
           "Origin": "https://xyzstreams-6h9.pages.dev",
           "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
         }

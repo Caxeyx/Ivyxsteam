@@ -8,6 +8,7 @@ import { defaultContent, VideoContent } from "./data";
 import { Play, Search, Bell, Menu, Home, Compass, Clock, ThumbsUp, Settings, Moon, Sun, Activity, ChevronLeft, ChevronRight, Star, Instagram, Film, Tv } from "lucide-react";
 import YouTube from "react-youtube";
 import ReactPlayer from "react-player";
+const ReactPlayerComponent = ReactPlayer as any;
 import { MagneticButton } from "@/components/ui/magnetic-button";
 import { Sidebar, SidebarBody, SidebarLink } from "@/components/ui/sidebar";
 import { motion } from "motion/react";
@@ -43,6 +44,116 @@ export default function App() {
   const [activeShowSources, setActiveShowSources] = useState<any[]>([]);
   const [isLoadingSources, setIsLoadingSources] = useState(false);
   const [activeChannel, setActiveChannel] = useState<{name: string, url: string, type?: string, drm?: any} | null>(null);
+  const [channels, setChannels] = useState<any[]>([]);
+
+  useEffect(() => {
+    const fetchChannels = async () => {
+      try {
+        const res = await fetch("/api/live-channels");
+        const data = await res.json();
+        
+        const baseChannels = [
+          { 
+            name: "🇺🇸 FOX", 
+            key: "fox",
+            desc: "World Cup Live — FOX (English)",
+            badge: "LIVE"
+          },
+          { 
+            name: "🇺🇸 FOX 4K", 
+            key: "fox4k",
+            desc: "World Cup Live — FOX 4K HEVC (English)",
+            badge: "4K"
+          },
+          { 
+            name: "🇬🇧 BBC", 
+            key: "bbc",
+            desc: "World Cup Live — BBC (English, UK)",
+            badge: "LIVE"
+          },
+          { 
+            name: "🇨🇦 TSN", 
+            key: "tsn",
+            desc: "World Cup Live — TSN (English, Canada)",
+            badge: "LIVE"
+          },
+          { 
+            name: "🇨🇦 TSN 4K", 
+            key: "tsn4k",
+            desc: "World Cup Live — TSN 4K (English, Canada)",
+            badge: "4K"
+          },
+          { 
+            name: "⚽ beIN Max", 
+            key: "bein",
+            desc: "World Cup Live — beIN Sports Max (Arabic)",
+            badge: "LIVE"
+          },
+          { 
+            name: "⚽ beIN Max 4K", 
+            key: "bein4k",
+            desc: "World Cup Live — beIN Sports Max 4K (Arabic)",
+            badge: "4K"
+          },
+          { 
+            name: "🇫🇷 beIN Sports 1", 
+            key: "beinfr",
+            desc: "World Cup Live — beIN Sports 1 (French)",
+            badge: "LIVE"
+          },
+          { 
+            name: "🇺🇸 Telemundo", 
+            key: "telemundo",
+            desc: "World Cup Live — Telemundo (Spanish)",
+            badge: "LIVE"
+          },
+          { 
+            name: "🇺🇸 Telemundo 4K", 
+            key: "telemundo4k",
+            desc: "World Cup Live — Telemundo 4K (Spanish)",
+            badge: "4K"
+          },
+          { 
+            name: "🇩🇪 FUSBALL.TV 1 4K", 
+            key: "fussball4k",
+            desc: "World Cup Live — FUSBALL.TV 1 4K (German)",
+            badge: "4K"
+          },
+          { 
+            name: "NBC Sports", 
+            url: "https://d4whmvwm0rdvi.cloudfront.net/10007/99993008/hls/master.m3u8?ads.xumo_channelId=99993008", 
+            desc: "Sports News Network"
+          },
+          { 
+            name: "FIFA SD", 
+            url: "https://krxplor.github.io/mpd/mpd1.html", 
+            desc: "Live Match (HTML Player)",
+            badge: "LIVE"
+          },
+          { 
+            name: "FTF Sports", 
+            url: "https://1657061170.rsc.cdn77.org/HLS/FTF-LINEAR.m3u8", 
+            desc: "Live Sports Broadcasting"
+          },
+        ];
+        
+        const merged = baseChannels.map(channel => {
+          if (channel.key) {
+            return {
+              ...channel,
+              url: data[channel.key] || `/api/proxy/stream/${channel.key}`
+            };
+          }
+          return channel;
+        });
+        
+        setChannels(merged);
+      } catch (err) {
+        console.error("Failed to fetch dynamic channels:", err);
+      }
+    };
+    fetchChannels();
+  }, []);
 
   const getSearchPlaceholder = () => {
     switch (activeViewTab) {
@@ -454,90 +565,7 @@ export default function App() {
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-left">
-                  {[
-                    { 
-                      name: "🇺🇸 FOX", 
-                      url: "/api/proxy/stream/fox", 
-                      desc: "World Cup Live — FOX (English)",
-                      badge: "LIVE"
-                    },
-                    { 
-                      name: "🇺🇸 FOX 4K", 
-                      url: "/api/proxy/stream/fox4k", 
-                      desc: "World Cup Live — FOX 4K HEVC (English)",
-                      badge: "4K"
-                    },
-                    { 
-                      name: "🇬🇧 BBC", 
-                      url: "/api/proxy/stream/bbc", 
-                      desc: "World Cup Live — BBC (English, UK)",
-                      badge: "LIVE"
-                    },
-                    { 
-                      name: "🇨🇦 TSN", 
-                      url: "/api/proxy/stream/tsn", 
-                      desc: "World Cup Live — TSN (English, Canada)",
-                      badge: "LIVE"
-                    },
-                    { 
-                      name: "🇨🇦 TSN 4K", 
-                      url: "/api/proxy/stream/tsn4k", 
-                      desc: "World Cup Live — TSN 4K (English, Canada)",
-                      badge: "4K"
-                    },
-                    { 
-                      name: "⚽ beIN Max", 
-                      url: "/api/proxy/stream/bein", 
-                      desc: "World Cup Live — beIN Sports Max (Arabic)",
-                      badge: "LIVE"
-                    },
-                    { 
-                      name: "⚽ beIN Max 4K", 
-                      url: "/api/proxy/stream/bein4k", 
-                      desc: "World Cup Live — beIN Sports Max 4K (Arabic)",
-                      badge: "4K"
-                    },
-                    { 
-                      name: "🇫🇷 beIN Sports 1", 
-                      url: "/api/proxy/stream/beinfr", 
-                      desc: "World Cup Live — beIN Sports 1 (French)",
-                      badge: "LIVE"
-                    },
-                    { 
-                      name: "🇺🇸 Telemundo", 
-                      url: "/api/proxy/stream/telemundo", 
-                      desc: "World Cup Live — Telemundo (Spanish)",
-                      badge: "LIVE"
-                    },
-                    { 
-                      name: "🇺🇸 Telemundo 4K", 
-                      url: "/api/proxy/stream/telemundo4k", 
-                      desc: "World Cup Live — Telemundo 4K (Spanish)",
-                      badge: "4K"
-                    },
-                    { 
-                      name: "🇩🇪 FUSBALL.TV 1 4K", 
-                      url: "/api/proxy/stream/fussball4k", 
-                      desc: "World Cup Live — FUSBALL.TV 1 4K (German)",
-                      badge: "4K"
-                    },
-                    { 
-                      name: "NBC Sports", 
-                      url: "https://d4whmvwm0rdvi.cloudfront.net/10007/99993008/hls/master.m3u8?ads.xumo_channelId=99993008", 
-                      desc: "Sports News Network"
-                    },
-                    { 
-                      name: "FIFA SD", 
-                      url: "https://krxplor.github.io/mpd/mpd1.html", 
-                      desc: "Live Match (HTML Player)",
-                      badge: "LIVE"
-                    },
-                    { 
-                      name: "FTF Sports", 
-                      url: "https://1657061170.rsc.cdn77.org/HLS/FTF-LINEAR.m3u8", 
-                      desc: "Live Sports Broadcasting"
-                    },
-                  ].filter(channel => 
+                  {channels.filter(channel => 
                     channel.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
                     channel.desc.toLowerCase().includes(searchQuery.toLowerCase())
                   ).map((channel: any, i) => (
@@ -563,13 +591,8 @@ export default function App() {
                     </button>
                   ))}
                 </div>
-                {[
-                    "🇺🇸 FOX", "🇺🇸 FOX 4K", "🇬🇧 BBC", "🇨🇦 TSN", "🇨🇦 TSN 4K",
-                    "⚽ beIN Max", "⚽ beIN Max 4K", "🇫🇷 beIN Sports 1",
-                    "🇺🇸 Telemundo", "🇺🇸 Telemundo 4K", "🇩🇪 FUSBALL.TV 1 4K",
-                    "NBC Sports", "FTF Sports"
-                ].filter(name => 
-                  name.toLowerCase().includes(searchQuery.toLowerCase())
+                {channels.filter(channel => 
+                  channel.name.toLowerCase().includes(searchQuery.toLowerCase())
                 ).length === 0 && searchQuery.trim() && (
                   <div className="py-12 text-center text-zinc-500 dark:text-zinc-400">
                     No channels found matching "{searchQuery}".
@@ -1021,7 +1044,7 @@ export default function App() {
             <div className="w-full aspect-video bg-black flex items-center justify-center">
               {activeChannel.type === "shaka" ? (
                 <ShakaPlayer url={activeChannel.url} drm={activeChannel.drm} />
-              ) : activeChannel.url.endsWith('.html') ? (
+              ) : (activeChannel.url.includes('.html') || activeChannel.url.includes('/embed/') || activeChannel.url.includes('streamid=')) ? (
                 <iframe 
                   src={activeChannel.url} 
                   className="w-full h-full border-0"
@@ -1034,7 +1057,7 @@ export default function App() {
               ) : (activeChannel.url.includes('.m3u8') || activeChannel.url.includes('/api/proxy/stream/')) ? (
                 <HlsPlayer url={activeChannel.url} />
               ) : (
-                <ReactPlayer
+                <ReactPlayerComponent
                   url={activeChannel.url}
                   playing
                   controls
