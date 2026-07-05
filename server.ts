@@ -482,7 +482,7 @@ async function startServer() {
     try {
       const response = await fetch("https://inproviszon.st/bbc-4k.m3u8", {
         headers: {
-          "Referer": "https://vileembeds.pages.dev/",
+          "Referer": "https://xyzstreams-6h9.pages.dev/worldcup26-2-0703",
           "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
         }
       });

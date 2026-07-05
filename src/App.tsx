@@ -141,7 +141,7 @@ export default function App() {
           if (channel.key) {
             return {
               ...channel,
-              url: data[channel.key] || `/api/proxy/stream/${channel.key}`
+              url: `/api/proxy/stream/${channel.key}`
             };
           }
           return channel;
