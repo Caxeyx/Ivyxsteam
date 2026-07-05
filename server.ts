@@ -6,6 +6,11 @@ async function startServer() {
   const PORT = 3000;
 
   // API routes FIRST
+  app.get("/ads.txt", (req, res) => {
+    res.type("text/plain");
+    res.send("google.com, pub-9109346034857171, DIRECT, f08c47fec0942fa0");
+  });
+
   app.get("/api/movies", async (req, res) => {
     try {
       const query = req.query.q as string;
