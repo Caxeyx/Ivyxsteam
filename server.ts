@@ -246,7 +246,34 @@ async function startServer() {
     }
   });
 
-  // Helper to scrape active match channels from timstreams
+  // Caching configuration for live channels scraping
+  let cachedLiveMap: Record<string, string> = {};
+  let lastScrapeTime = 0;
+  let isScraping = false;
+  const CACHE_TTL = 3 * 60 * 1000; // 3 minutes
+
+  // Trigger cache refresh in the background
+  async function triggerScrape() {
+    if (isScraping) return;
+    isScraping = true;
+    try {
+      console.log("[Scraper] Starting background live channels scrape...");
+      const start = Date.now();
+      const freshMap = await getLiveChannelsMap();
+      cachedLiveMap = freshMap;
+      lastScrapeTime = Date.now();
+      console.log(`[Scraper] Scrape completed in ${Date.now() - start}ms`);
+    } catch (err) {
+      console.error("[Scraper] Background scrape failed:", err);
+    } finally {
+      isScraping = false;
+    }
+  }
+
+  // Pre-seed the cache on server startup
+  triggerScrape();
+
+  // Helper to scrape active match channels from timstreams in parallel
   async function getLiveChannelsMap() {
     const map: Record<string, string> = {};
     try {
@@ -261,14 +288,16 @@ async function startServer() {
       const matchRegex = /\/match\/[a-zA-Z0-9-]+/g;
       const matches = Array.from(new Set(homeHtml.match(matchRegex) || []));
       
-      for (const matchPath of matches) {
+      console.log(`[Scraper] Found ${matches.length} matches to scrape in parallel.`);
+      
+      await Promise.all(matches.map(async (matchPath) => {
         try {
           const matchRes = await fetch(`https://timstreams.live${matchPath}`, {
             headers: {
               "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
             }
           });
-          if (!matchRes.ok) continue;
+          if (!matchRes.ok) return;
           const matchHtml = await matchRes.text();
           
           const watchRegex = /\/watch\/([a-zA-Z0-9-]+)/g;
@@ -296,7 +325,7 @@ async function startServer() {
         } catch (err) {
           console.error(`[Scraper] Error parsing match ${matchPath}:`, err);
         }
-      }
+      }));
     } catch (e) {
       console.error("[Scraper] Error fetching live channels:", e);
     }
@@ -319,10 +348,17 @@ async function startServer() {
 
   app.get("/api/live-channels", async (req, res) => {
     try {
-      const liveMap = await getLiveChannelsMap();
+      if (Date.now() - lastScrapeTime > CACHE_TTL) {
+        triggerScrape();
+      }
+      
+      if (Object.keys(cachedLiveMap).length === 0) {
+        await triggerScrape();
+      }
+
       const result: Record<string, string> = {};
       for (const key of Object.keys(FALLBACK_MAP)) {
-        result[key] = liveMap[key] || FALLBACK_MAP[key];
+        result[key] = cachedLiveMap[key] || FALLBACK_MAP[key];
       }
       res.json(result);
     } catch (e) {
