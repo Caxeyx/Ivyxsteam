@@ -374,17 +374,17 @@ async function startServer() {
 
   // Generic HLS stream proxy for World Cup channels
   const STREAM_MAP: Record<string, string> = {
-    "fox": "https://inproviszon.st/fox-xyz-waUvqaAAC.m3u8",
-    "fox4k": "https://inproviszon.st/fox4k-usa.m3u8",
-    "bbc": "https://inproviszon.st/itv-xyz-waUvqaAACr.m3u8",
-    "tsn": "https://inproviszon.st/tsn1-xyz-waUvqaAACr.m3u8",
-    "tsn4k": "https://inproviszon.st/tsn4k-xyz-waUvqaAACr.m3u8",
-    "bein": "https://inproviszon.st/bein-xyz-waUvqaAACr.m3u8",
-    "bein4k": "https://inproviszon.st/bein4k-xyz-waUvqaAACr.m3u8",
-    "beinfr": "https://inproviszon.st/bein12fr-xyz.m3u8",
-    "telemundo": "https://inproviszon.st/telemundo-xyz-waUvqaAACr.m3u8",
-    "telemundo4k": "https://inproviszon.st/telemundo-xyz-waUvqaAACr.m3u8",
-    "fussball4k": "https://inproviszon.st/fussballtv1uhd-de.m3u8",
+    "fox": "https://pacquiao.inproviszon.st/fox-usa.m3u8",
+    "fox4k": "https://pacquiao.inproviszon.st/fox4k-usa.m3u8",
+    "bbc": "https://pacquiao.inproviszon.st/itv-xyz-waUvqaAAC.m3u8",
+    "tsn": "https://pacquiao.inproviszon.st/tsn1-xyz-waUvqaAACr.m3u8",
+    "tsn4k": "https://pacquiao.inproviszon.st/tsn4k-xyz-waUvqaAACr.m3u8",
+    "bein": "https://pacquiao.inproviszon.st/bein-xyz-waUvqaAAC.m3u8",
+    "bein4k": "https://pacquiao.inproviszon.st/bein4k-xyz-waUvqaAAC.m3u8",
+    "beinfr": "https://pacquiao.inproviszon.st/bein12fr-xyz.m3u8",
+    "telemundo": "https://pacquiao.inproviszon.st/telemundo-xyz-waUvqaAACr.m3u8",
+    "telemundo4k": "https://pacquiao.inproviszon.st/telemundo-xyz-waUvqaAACr.m3u8",
+    "fussball4k": "https://pacquiao.inproviszon.st/fussballtv1uhd-de.m3u8",
   };
 
   app.get("/api/proxy/stream/:channel", async (req, res) => {
@@ -397,7 +397,7 @@ async function startServer() {
 
       const response = await fetch(streamUrl, {
         headers: {
-          "Referer": "https://xyzstreams-6h9.pages.dev/worldcup26-2-0703",
+          "Referer": "https://xyzstreams-6h9.pages.dev/worldcup26-2-0707",
           "Origin": "https://xyzstreams-6h9.pages.dev",
           "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
         }
@@ -419,7 +419,7 @@ async function startServer() {
         return `/api/proxy/segment?url=${encodeURIComponent(baseUrl + match)}`;
       });
       // Also rewrite absolute URLs from the same host
-      text = text.replace(/(https:\/\/inproviszon\.st\/[^\s]+)/g, (match) => {
+      text = text.replace(/(https:\/\/(?:[a-zA-Z0-9\-]+\.)?inproviszon\.st\/[^\s"]+)/g, (match) => {
         return `/api/proxy/segment?url=${encodeURIComponent(match)}`;
       });
       
@@ -440,7 +440,7 @@ async function startServer() {
 
       const response = await fetch(segmentUrl, {
         headers: {
-          "Referer": "https://xyzstreams-6h9.pages.dev/worldcup26-2-0703",
+          "Referer": "https://xyzstreams-6h9.pages.dev/worldcup26-2-0707",
           "Origin": "https://xyzstreams-6h9.pages.dev",
           "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
         }
@@ -466,7 +466,7 @@ async function startServer() {
         text = text.replace(/^(?!#)(?!https?:\/\/)(.+\.m3u8.*)$/gm, (match) => {
           return `/api/proxy/segment?url=${encodeURIComponent(baseUrl + match)}`;
         });
-        text = text.replace(/(https:\/\/inproviszon\.st\/[^\s]+)/g, (match) => {
+        text = text.replace(/(https:\/\/(?:[a-zA-Z0-9\-]+\.)?inproviszon\.st\/[^\s"]+)/g, (match) => {
           return `/api/proxy/segment?url=${encodeURIComponent(match)}`;
         });
         res.setHeader("Content-Type", "application/vnd.apple.mpegurl");
@@ -485,9 +485,9 @@ async function startServer() {
   // Legacy BBC proxy (kept for backward compatibility)
   app.get("/api/proxy/bbc.m3u8", async (req, res) => {
     try {
-      const response = await fetch("https://inproviszon.st/bbc-4k.m3u8", {
+      const response = await fetch("https://pacquiao.inproviszon.st/bbc-4k.m3u8", {
         headers: {
-          "Referer": "https://xyzstreams-6h9.pages.dev/worldcup26-2-0703",
+          "Referer": "https://xyzstreams-6h9.pages.dev/worldcup26-2-0707",
           "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
         }
       });
