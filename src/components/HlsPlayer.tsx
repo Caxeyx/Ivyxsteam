@@ -85,6 +85,7 @@ export function HlsPlayer({ url }: HlsPlayerProps) {
       <video
         ref={videoRef}
         controls
+        muted
         className="w-full h-full"
         playsInline
       />
