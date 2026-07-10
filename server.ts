@@ -1,9 +1,10 @@
 import express from "express";
 import path from "path";
+import vm from "vm";
 
 async function startServer() {
   const app = express();
-  const PORT = 3000;
+  const PORT = process.env.PORT ? parseInt(process.env.PORT) : 3000;
 
   // API routes FIRST
   app.get("/ads.txt", (req, res) => {
@@ -375,33 +376,193 @@ async function startServer() {
   // Generic HLS stream proxy for World Cup channels
   const STREAM_REFERER = "https://xyzstreams-6h9.pages.dev/worldcup26-1-0710";
   const STREAM_ORIGIN = "https://xyzstreams-6h9.pages.dev";
+  const PLAYER_REFERER = "https://player.xyzstreams.st/";
+  const PLAYER_ORIGIN = "https://player.xyzstreams.st";
 
-  const STREAM_MAP: Record<string, string> = {
-    "fox": "https://pacquiao.inproviszon.st/fox-usa.m3u8",
-    "fox4k": "https://pacquiao.inproviszon.st/fox4k-usa.m3u8",
-    "bbc": "https://pacquiao.inproviszon.st/itv-xyz-waUvqaAAC.m3u8",
-    "tsn": "https://pacquiao.inproviszon.st/tsn1-xyz-waUvqaAACr.m3u8",
-    "tsn4k": "https://pacquiao.inproviszon.st/tsn4k-xyz-waUvqaAACr.m3u8",
-    "bein": "https://pacquiao.inproviszon.st/bein-xyz-waUvqaAAC.m3u8",
-    "bein4k": "https://pacquiao.inproviszon.st/bein4k-xyz-waUvqaAAC.m3u8",
-    "beinfr": "https://pacquiao.inproviszon.st/bein12fr-xyz.m3u8",
-    "telemundo": "https://pacquiao.inproviszon.st/telemundo-xyz-waUvqaAACr.m3u8",
-    "telemundo4k": "https://pacquiao.inproviszon.st/telemundo-xyz-waUvqaAACr.m3u8",
-    "fussball4k": "https://pacquiao.inproviszon.st/fussballtv1uhd-de.m3u8",
+  const EMBED_MAP: Record<string, string> = {
+    "fox": "fox-xyz-waUvqaAA",
+    "fox4k": "fox4k-usa",
+    "bbc": "bbcone-uk",
+    "tsn": "tsn1-xyz-waUvqaAACr",
+    "tsn4k": "tsn4k-xyz-waUvqaAACr",
+    "bein": "bein-xyz-waUvqaAAC",
+    "bein4k": "bein4k-xyz-waUvqaAAC",
+    "beinfr": "bein12fr-xyz",
+    "telemundo": "telemundo-xyz-waUvqaAACr",
+    "telemundo4k": "telemundo-xyz-waUvqaAACr",
+    "fussball4k": "fussballtv1uhd-de"
   };
+
+  const resolvedUrlsCache: Record<string, { url: string; expiresAt: number }> = {};
+  const CACHE_DURATION = 10 * 60 * 1000; // 10 minutes cache
+
+  async function resolveStreamUrl(channel: string): Promise<string> {
+    const embedId = EMBED_MAP[channel];
+    if (!embedId) {
+      throw new Error(`Channel ${channel} not mapped`);
+    }
+
+    const cached = resolvedUrlsCache[channel];
+    if (cached && Date.now() < cached.expiresAt) {
+      console.log(`[Proxy] Using cached stream URL for ${channel}`);
+      return cached.url;
+    }
+
+    let lastError: any = null;
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      try {
+        console.log(`[Proxy] Resolving stream URL for ${channel} (embedId: ${embedId}), attempt ${attempt}...`);
+        const embedUrl = `https://player.xyzstreams.st/embed/${embedId}`;
+        
+        const res = await fetch(embedUrl, {
+          signal: AbortSignal.timeout(5000),
+          headers: {
+            "Referer": STREAM_REFERER,
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
+          }
+        });
+        if (!res.ok) {
+          throw new Error(`Failed to fetch embed page: status ${res.status}`);
+        }
+        const html = await res.text();
+        
+        // Find the script starting with "(function(_0x"
+        const scriptStart = html.indexOf("(function(_0x");
+        if (scriptStart === -1) {
+          throw new Error("Obfuscated start pattern not found in HTML");
+        }
+        
+        const openTagIndex = html.lastIndexOf("<script", scriptStart);
+        const closeTagIndex = html.indexOf("</script>", scriptStart);
+        
+        if (openTagIndex === -1 || closeTagIndex === -1) {
+          throw new Error("Script tags enclosing the pattern not found");
+        }
+        
+        const contentStart = html.indexOf(">", openTagIndex) + 1;
+        const scriptContent = html.substring(contentStart, closeTagIndex);
+
+        let playerOptions: any = null;
+
+        const mockWindow = {
+          location: {
+            href: embedUrl,
+            hostname: "player.xyzstreams.st",
+            pathname: `/embed/${embedId}`,
+            search: ""
+          },
+          navigator: {
+            userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
+          },
+          setTimeout: () => {},
+          setInterval: () => {},
+          clearTimeout: () => {},
+          clearInterval: () => {},
+          console: { log: () => {}, error: () => {} }, // suppress console output
+          eval: eval
+        };
+
+        const mockDocument = {
+          referrer: STREAM_REFERER,
+          getElementById: (id: string) => {
+            return {
+              addEventListener: () => {},
+              classList: { add: () => {}, remove: () => {} },
+              style: {}
+            };
+          },
+          addEventListener: () => {},
+          createElement: () => ({
+            setAttribute: () => {},
+            appendChild: () => {},
+            style: {}
+          }),
+          querySelector: () => null,
+          querySelectorAll: () => []
+        };
+
+        const context = {
+          window: mockWindow,
+          document: mockDocument,
+          navigator: mockWindow.navigator,
+          location: mockWindow.location,
+          setTimeout: mockWindow.setTimeout,
+          setInterval: mockWindow.setInterval,
+          clearTimeout: mockWindow.clearTimeout,
+          clearInterval: mockWindow.clearInterval,
+          console: { log: () => {}, error: () => {} },
+          Clappr: new Proxy({
+            Player: function(options: any) {
+              playerOptions = options;
+              const dummyFunc = (...args: any[]) => {
+                return dummyProxy;
+              };
+              const dummyProxy = new Proxy(dummyFunc, {
+                get: (target: any, prop: string) => {
+                  if (prop === 'options') return options;
+                  if (prop === 'then') return undefined;
+                  return (...args: any[]) => {
+                    if (prop === 'configure' || prop === 'load') {
+                      if (typeof args[0] === 'string') {
+                        if (!playerOptions) playerOptions = {};
+                        playerOptions.source = args[0];
+                      } else if (args[0] && typeof args[0] === 'object') {
+                        playerOptions = Object.assign(playerOptions || {}, args[0]);
+                      }
+                    }
+                    return dummyProxy;
+                  };
+                }
+              });
+              return dummyProxy;
+            }
+          }, {
+            get: (target: any, prop: string) => {
+              if (prop in target) return target[prop];
+              return new Proxy({}, {
+                get: (t: any, p: string) => p
+              });
+            }
+          })
+        };
+        (context.window as any).window = context;
+        (context.window as any).document = mockDocument;
+
+        vm.createContext(context);
+        vm.runInContext(scriptContent, context);
+
+        const streamUrl = playerOptions?.source;
+        if (!streamUrl) {
+          throw new Error("Could not extract stream source URL from player options");
+        }
+
+        console.log(`[Proxy] Successfully resolved stream URL for ${channel} on attempt ${attempt}: ${streamUrl}`);
+        resolvedUrlsCache[channel] = {
+          url: streamUrl,
+          expiresAt: Date.now() + CACHE_DURATION
+        };
+        
+        return streamUrl;
+      } catch (err: any) {
+        console.error(`[Proxy] Attempt ${attempt} failed: ${err.message}`);
+        lastError = err;
+        // Wait 150ms before retrying
+        await new Promise(r => setTimeout(r, 150));
+      }
+    }
+    
+    throw lastError || new Error(`Failed to resolve stream URL for ${channel} after 3 attempts`);
+  }
 
   app.get("/api/proxy/stream/:channel", async (req, res) => {
     try {
       const channel = req.params.channel.replace('.m3u8', '');
-      const streamUrl = STREAM_MAP[channel];
-      if (!streamUrl) {
-        return res.status(404).json({ error: "Channel not found" });
-      }
+      const streamUrl = await resolveStreamUrl(channel);
 
       const response = await fetch(streamUrl, {
         headers: {
-          "Referer": STREAM_REFERER,
-          "Origin": STREAM_ORIGIN,
+          "Referer": PLAYER_REFERER,
+          "Origin": PLAYER_ORIGIN,
           "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
         }
       });
@@ -413,18 +574,24 @@ async function startServer() {
       res.setHeader("Access-Control-Allow-Headers", "*");
       let text = await response.text();
       
-      // Rewrite relative segment URLs to go through our proxy
+      // Rewrite all URIs in the playlist to go through our proxy
       const baseUrl = streamUrl.substring(0, streamUrl.lastIndexOf('/') + 1);
-      text = text.replace(/^(?!#)(?!https?:\/\/)(.+\.ts.*)$/gm, (match) => {
-        return `/api/proxy/segment?url=${encodeURIComponent(baseUrl + match)}`;
+      const lines = text.split('\n');
+      const rewrittenLines = lines.map(line => {
+        const trimmed = line.trim();
+        if (trimmed.length === 0) return line;
+        if (trimmed.startsWith('#')) {
+          return trimmed.replace(/URI=["'](https?:\/\/[^"']+)["']/g, (m, uri) => {
+            return `URI="/api/proxy/segment?url=${encodeURIComponent(uri)}"`;
+          });
+        }
+        let fullUrl = trimmed;
+        if (!trimmed.startsWith('http://') && !trimmed.startsWith('https://')) {
+          fullUrl = baseUrl + trimmed;
+        }
+        return `/api/proxy/segment?url=${encodeURIComponent(fullUrl)}`;
       });
-      text = text.replace(/^(?!#)(?!https?:\/\/)(.+\.m3u8.*)$/gm, (match) => {
-        return `/api/proxy/segment?url=${encodeURIComponent(baseUrl + match)}`;
-      });
-      // Also rewrite absolute URLs from the same host
-      text = text.replace(/(https:\/\/(?:[a-zA-Z0-9\-]+\.)?inproviszon\.st\/[^\s"]+)/g, (match) => {
-        return `/api/proxy/segment?url=${encodeURIComponent(match)}`;
-      });
+      text = rewrittenLines.join('\n');
       
       res.send(text);
     } catch (error) {
@@ -443,8 +610,8 @@ async function startServer() {
 
       const response = await fetch(segmentUrl, {
         headers: {
-          "Referer": STREAM_REFERER,
-          "Origin": STREAM_ORIGIN,
+          "Referer": PLAYER_REFERER,
+          "Origin": PLAYER_ORIGIN,
           "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
         }
       });
@@ -463,15 +630,22 @@ async function startServer() {
       if (segmentUrl.includes('.m3u8')) {
         let text = await response.text();
         const baseUrl = segmentUrl.substring(0, segmentUrl.lastIndexOf('/') + 1);
-        text = text.replace(/^(?!#)(?!https?:\/\/)(.+\.ts.*)$/gm, (match) => {
-          return `/api/proxy/segment?url=${encodeURIComponent(baseUrl + match)}`;
+        const lines = text.split('\n');
+        const rewrittenLines = lines.map(line => {
+          const trimmed = line.trim();
+          if (trimmed.length === 0) return line;
+          if (trimmed.startsWith('#')) {
+            return trimmed.replace(/URI=["'](https?:\/\/[^"']+)["']/g, (m, uri) => {
+              return `URI="/api/proxy/segment?url=${encodeURIComponent(uri)}"`;
+            });
+          }
+          let fullUrl = trimmed;
+          if (!trimmed.startsWith('http://') && !trimmed.startsWith('https://')) {
+            fullUrl = baseUrl + trimmed;
+          }
+          return `/api/proxy/segment?url=${encodeURIComponent(fullUrl)}`;
         });
-        text = text.replace(/^(?!#)(?!https?:\/\/)(.+\.m3u8.*)$/gm, (match) => {
-          return `/api/proxy/segment?url=${encodeURIComponent(baseUrl + match)}`;
-        });
-        text = text.replace(/(https:\/\/(?:[a-zA-Z0-9\-]+\.)?inproviszon\.st\/[^\s"]+)/g, (match) => {
-          return `/api/proxy/segment?url=${encodeURIComponent(match)}`;
-        });
+        text = rewrittenLines.join('\n');
         res.setHeader("Content-Type", "application/vnd.apple.mpegurl");
         res.send(text);
       } else {
@@ -488,9 +662,11 @@ async function startServer() {
   // Legacy BBC proxy (kept for backward compatibility)
   app.get("/api/proxy/bbc.m3u8", async (req, res) => {
     try {
-      const response = await fetch("https://pacquiao.inproviszon.st/bbc-4k.m3u8", {
+      const streamUrl = await resolveStreamUrl("bbc");
+      const response = await fetch(streamUrl, {
         headers: {
-          "Referer": STREAM_REFERER,
+          "Referer": PLAYER_REFERER,
+          "Origin": PLAYER_ORIGIN,
           "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
         }
       });
