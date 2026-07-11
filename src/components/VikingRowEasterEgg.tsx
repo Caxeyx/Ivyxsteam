@@ -22,8 +22,7 @@ export function VikingRowEasterEgg({ show, onClose }: VikingRowEasterEggProps) {
   const [isMuted, setIsMuted] = useState(true);
   const [replayKey, setReplayKey] = useState(0);
   const [confetti, setConfetti] = useState<ConfettiParticle[]>([]);
-  const audioCtxRef = useRef<AudioContext | null>(null);
-  const soundIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   // Generate confetti on show or replay
   useEffect(() => {
@@ -53,88 +52,46 @@ export function VikingRowEasterEgg({ show, onClose }: VikingRowEasterEggProps) {
     setConfetti(particles);
   }, [show, replayKey]);
 
-  // Audio Synthesis for the Viking Drum beat
-  const playVikingDrum = () => {
-    try {
-      if (!audioCtxRef.current) {
-        audioCtxRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
-      }
-      
-      const ctx = audioCtxRef.current;
-      if (ctx.state === "suspended") {
-        ctx.resume();
-      }
-
-      const now = ctx.currentTime;
-
-      // 1. Deep Bass Drum (Viking Kick)
-      const kickOsc = ctx.createOscillator();
-      const kickGain = ctx.createGain();
-      kickOsc.connect(kickGain);
-      kickGain.connect(ctx.destination);
-
-      kickOsc.type = "sine";
-      kickOsc.frequency.setValueAtTime(110, now); // start at 110Hz
-      kickOsc.frequency.exponentialRampToValueAtTime(0.01, now + 0.4);
-
-      kickGain.gain.setValueAtTime(0.7, now);
-      kickGain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
-
-      kickOsc.start(now);
-      kickOsc.stop(now + 0.45);
-
-      // 2. Wood Click/Creak (Oar hitting the side of the boat)
-      const clickOsc = ctx.createOscillator();
-      const clickGain = ctx.createGain();
-      clickOsc.connect(clickGain);
-      clickGain.connect(ctx.destination);
-
-      clickOsc.type = "triangle";
-      clickOsc.frequency.setValueAtTime(280, now);
-      clickOsc.frequency.linearRampToValueAtTime(140, now + 0.08);
-
-      clickGain.gain.setValueAtTime(0.08, now);
-      clickGain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
-
-      clickOsc.start(now);
-      clickOsc.stop(now + 0.09);
-    } catch (e) {
-      console.error("Failed to play synthesized drum sound", e);
-    }
-  };
-
-  // Synchronized Sound playing with Rowing rhythm (every 1200ms)
+  // Load and control HTML5 Audio (norway-row.mp3)
   useEffect(() => {
-    if (!show || isMuted) {
-      if (soundIntervalRef.current) {
-        clearInterval(soundIntervalRef.current);
-        soundIntervalRef.current = null;
+    if (!show) {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
       }
       return;
     }
 
-    // Play immediately, then every 1200ms
-    playVikingDrum();
-    soundIntervalRef.current = setInterval(() => {
-      playVikingDrum();
-    }, 1200);
+    // Stop existing if any
+    if (audioRef.current) {
+      audioRef.current.pause();
+    }
+
+    const audio = new Audio("/norway-row.mp3");
+    audio.loop = true;
+    audio.muted = isMuted;
+    audioRef.current = audio;
+
+    audio.play().catch((err) => {
+      console.log("Audio play blocked/failed:", err);
+    });
 
     return () => {
-      if (soundIntervalRef.current) {
-        clearInterval(soundIntervalRef.current);
-        soundIntervalRef.current = null;
-      }
+      audio.pause();
     };
-  }, [show, isMuted, replayKey]);
+  }, [show, replayKey]);
 
-  // Clean up audio context on unmount
+  useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.muted = isMuted;
+    }
+  }, [isMuted]);
+
+  // Clean up audio on unmount
   useEffect(() => {
     return () => {
-      if (soundIntervalRef.current) {
-        clearInterval(soundIntervalRef.current);
-      }
-      if (audioCtxRef.current) {
-        audioCtxRef.current.close();
+      if (audioRef.current) {
+        audioRef.current.pause();
       }
     };
   }, []);
@@ -198,8 +155,6 @@ export function VikingRowEasterEgg({ show, onClose }: VikingRowEasterEggProps) {
               onClick={() => {
                 if (isMuted) {
                   setIsMuted(false);
-                } else {
-                  playVikingDrum();
                 }
               }}
             >
