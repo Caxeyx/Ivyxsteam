@@ -352,6 +352,37 @@ async function startServer() {
     "fussball4k": "https://xyzstreams.st/wc-14-embed.html",
   };
 
+  let cachedHindiUrl = "https://mpd26wc64.blogspot.com/p/matchday01.html";
+  let lastHindiScrape = 0;
+
+  async function getHindiChannelUrl(): Promise<string> {
+    if (Date.now() - lastHindiScrape < 3 * 60 * 1000) { // 3 min cache
+      return cachedHindiUrl;
+    }
+    try {
+      console.log("[Scraper] Scraping Hindi channel stream URL...");
+      const res = await fetch("https://mpd26wc64.blogspot.com/p/matchday01.html", {
+        headers: {
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
+        },
+        signal: AbortSignal.timeout(5000)
+      });
+      if (res.ok) {
+        const html = await res.text();
+        const match = html.match(/src="(https:\/\/krxplor\.github\.io\/plyr\/\?x=[^"]+)"/i);
+        if (match && match[1]) {
+          cachedHindiUrl = match[1];
+          lastHindiScrape = Date.now();
+          console.log("[Scraper] Resolved Hindi channel URL:", cachedHindiUrl);
+          return cachedHindiUrl;
+        }
+      }
+    } catch (err) {
+      console.error("[Scraper] Failed to scrape Hindi channel:", err);
+    }
+    return cachedHindiUrl;
+  }
+
   app.get("/api/live-channels", async (req, res) => {
     try {
       if (Date.now() - lastScrapeTime > CACHE_TTL) {
@@ -366,10 +397,15 @@ async function startServer() {
       for (const key of Object.keys(FALLBACK_MAP)) {
         result[key] = cachedLiveMap[key] || FALLBACK_MAP[key];
       }
+
+      // Dynamic Hindi channel
+      result["hindi"] = await getHindiChannelUrl();
+
       res.json(result);
     } catch (e) {
       console.error(e);
-      res.json(FALLBACK_MAP);
+      const fallbackResult = { ...FALLBACK_MAP, hindi: cachedHindiUrl };
+      res.json(fallbackResult);
     }
   });
 

@@ -5,7 +5,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { defaultContent, VideoContent } from "./data";
-import { Play, Search, Bell, Menu, Home, Compass, Clock, ThumbsUp, Settings, Moon, Sun, Activity, ChevronLeft, ChevronRight, Star, Instagram, Film, Tv, Volume2, VolumeX, Ship } from "lucide-react";
+import { Play, Search, Bell, Menu, Home, Compass, Clock, ThumbsUp, Settings, Moon, Sun, Activity, ChevronLeft, ChevronRight, Star, Instagram, Film, Tv } from "lucide-react";
 import YouTube from "react-youtube";
 import ReactPlayer from "react-player";
 const ReactPlayerComponent = ReactPlayer as any;
@@ -17,13 +17,11 @@ import { MatchModal } from "@/components/MatchModal";
 import { ShakaPlayer } from "./components/ShakaPlayer";
 import { HlsPlayer } from "./components/HlsPlayer";
 import * as clientApi from "./lib/clientApi";
-import { VikingRowEasterEgg } from "./components/VikingRowEasterEgg";
 
 export default function App() {
   const [activeVideo, setActiveVideo] = useState<VideoContent>(defaultContent[0]);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [showVikingEasterEgg, setShowVikingEasterEgg] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(true);
   const [matches, setMatches] = useState<{live: any[], upcoming: any[], recent: any[]}>({ live: [], upcoming: [], recent: [] });
   const [expandedMatchId, setExpandedMatchId] = useState<number | null>(null);
@@ -47,55 +45,6 @@ export default function App() {
   const [isLoadingSources, setIsLoadingSources] = useState(false);
   const [activeChannel, setActiveChannel] = useState<{name: string, url: string, type?: string, drm?: any} | null>(null);
   const [channels, setChannels] = useState<any[]>([]);
-  const [isAnthemMuted, setIsAnthemMuted] = useState(false);
-  const anthemAudioRef = useRef<HTMLAudioElement>(null);
-
-  const toggleAnthemMute = () => {
-    const nextMuted = !isAnthemMuted;
-    setIsAnthemMuted(nextMuted);
-    if (anthemAudioRef.current) {
-      anthemAudioRef.current.muted = nextMuted;
-      if (!nextMuted) {
-        anthemAudioRef.current.play().catch(e => {
-          console.error("Audio playback error:", e);
-        });
-      }
-    }
-  };
-
-  useEffect(() => {
-    if (anthemAudioRef.current) {
-      anthemAudioRef.current.volume = 0.2;
-      if (!isAnthemMuted) {
-        anthemAudioRef.current.play().catch(() => {
-          console.log("Autoplay blocked by browser. Audio will play upon interaction.");
-        });
-      }
-    }
-
-    const handleFirstInteraction = () => {
-      if (anthemAudioRef.current && !isAnthemMuted) {
-        anthemAudioRef.current.play().catch(() => {});
-      }
-      // Remove listeners after first interaction
-      document.removeEventListener('click', handleFirstInteraction);
-      document.removeEventListener('keydown', handleFirstInteraction);
-      document.removeEventListener('touchstart', handleFirstInteraction);
-      document.removeEventListener('scroll', handleFirstInteraction);
-    };
-
-    document.addEventListener('click', handleFirstInteraction);
-    document.addEventListener('keydown', handleFirstInteraction);
-    document.addEventListener('touchstart', handleFirstInteraction);
-    document.addEventListener('scroll', handleFirstInteraction);
-
-    return () => {
-      document.removeEventListener('click', handleFirstInteraction);
-      document.removeEventListener('keydown', handleFirstInteraction);
-      document.removeEventListener('touchstart', handleFirstInteraction);
-      document.removeEventListener('scroll', handleFirstInteraction);
-    };
-  }, [isAnthemMuted]);
 
   useEffect(() => {
     const fetchChannels = async () => {
@@ -169,6 +118,12 @@ export default function App() {
             key: "fussball4k",
             desc: "World Cup Live — FUSBALL.TV 1 4K (German)",
             badge: "4K"
+          },
+          { 
+            name: "🇮🇳 Hindi Commentary", 
+            url: data.hindi || "https://mpd26wc64.blogspot.com/p/matchday01.html",
+            desc: "World Cup Live — Hindi Commentary (Live Player)",
+            badge: "LIVE"
           },
           { 
             name: "NBC Sports", 
@@ -406,21 +361,6 @@ export default function App() {
     return () => clearTimeout(timeoutId);
   }, [searchQuery, activeViewTab]);
 
-  useEffect(() => {
-    // Automatically trigger the Easter Egg 1.5 seconds after page load
-    const timer = setTimeout(() => {
-      setShowVikingEasterEgg(true);
-    }, 1500);
-    return () => clearTimeout(timer);
-  }, []);
-
-  useEffect(() => {
-    const q = searchQuery.trim().toLowerCase();
-    if (q === "haaland" || q === "halaand") {
-      setShowVikingEasterEgg(true);
-    }
-  }, [searchQuery]);
-
   const handleExpandMatch = async (id: number, competitionId?: number) => {
     if (expandedMatchId === id) {
       setExpandedMatchId(null);
@@ -511,45 +451,16 @@ export default function App() {
       {/* Main Content */}
       <main className="flex-1 flex flex-col min-w-0 bg-zinc-50 dark:bg-zinc-950 h-screen overflow-hidden relative transition-colors duration-300">
         {activeViewTab === 'Home' && (
-          <>
-            {/* Local Background Video Player */}
-            <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
-              <video
-                src="/france-flag.mp4"
-                autoPlay
-                muted
-                loop
-                playsInline
-                className="absolute top-1/2 left-1/2 w-full h-full object-cover -translate-x-1/2 -translate-y-1/2 opacity-[0.22] dark:opacity-[0.14]"
-              />
-            </div>
-            {/* Local Background Audio Player */}
-            <audio
-              ref={anthemAudioRef}
-              src="/haaland-song.mp3"
+          <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
+            <video
+              src="/france-flag.mp4"
               autoPlay
-              muted={isAnthemMuted}
+              muted
               loop
+              playsInline
+              className="absolute top-1/2 left-1/2 w-full h-full object-cover -translate-x-1/2 -translate-y-1/2 opacity-[0.22] dark:opacity-[0.14]"
             />
-            {/* Floating Audio Toggle Button */}
-            <button
-              onClick={toggleAnthemMute}
-              className="fixed bottom-6 right-6 z-50 p-4 rounded-full bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md border border-zinc-200 dark:border-zinc-800 shadow-lg text-zinc-800 dark:text-zinc-200 hover:scale-105 active:scale-95 transition-all flex items-center justify-center cursor-pointer group"
-              title={isAnthemMuted ? "Unmute Haaland Song" : "Mute Haaland Song"}
-            >
-              {isAnthemMuted ? (
-                <VolumeX className="w-6 h-6 text-red-500 group-hover:animate-pulse" />
-              ) : (
-                <div className="relative">
-                  <Volume2 className="w-6 h-6 text-[#FF4081]" />
-                  <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-pink-400 opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[#FF4081]"></span>
-                  </span>
-                </div>
-              )}
-            </button>
-          </>
+          </div>
         )}
         {/* Header */}
         <header className="h-16 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between px-6 sticky top-0 z-20">
@@ -569,13 +480,6 @@ export default function App() {
             </div>
           </div>
           <div className="flex items-center gap-4">
-            <button 
-              onClick={() => setShowVikingEasterEgg(true)} 
-              className="p-2 text-zinc-500 dark:text-zinc-400 hover:text-[#FF4081] dark:hover:text-[#FF4081] rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
-              title="Trigger Viking Row"
-            >
-              <Ship className="w-5 h-5" />
-            </button>
             <button 
               onClick={() => setIsDarkMode(!isDarkMode)} 
               className="p-2 text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-50 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
@@ -1190,7 +1094,7 @@ export default function App() {
             <div className="w-full aspect-video bg-black flex items-center justify-center">
               {activeChannel.type === "shaka" ? (
                 <ShakaPlayer url={activeChannel.url} drm={activeChannel.drm} />
-              ) : (activeChannel.url.includes('.html') || activeChannel.url.includes('/embed/') || activeChannel.url.includes('streamid=')) ? (
+              ) : (activeChannel.url.includes('.html') || activeChannel.url.includes('/embed/') || activeChannel.url.includes('streamid=') || activeChannel.url.includes('krxplor.github.io') || activeChannel.url.includes('/plyr/')) ? (
                 <iframe 
                   src={activeChannel.url} 
                   className="w-full h-full border-0"
@@ -1215,7 +1119,6 @@ export default function App() {
           </div>
         </div>
       )}
-      <VikingRowEasterEgg show={showVikingEasterEgg} onClose={() => setShowVikingEasterEgg(false)} />
     </div>
   );
 }
