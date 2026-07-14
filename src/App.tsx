@@ -5,7 +5,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { defaultContent, VideoContent } from "./data";
-import { Play, Search, Bell, Menu, Home, Compass, Clock, ThumbsUp, Settings, Moon, Sun, Activity, ChevronLeft, ChevronRight, Star, Instagram, Film, Tv } from "lucide-react";
+import { Play, Search, Bell, Menu, Home, Compass, Clock, ThumbsUp, Settings, Moon, Sun, Activity, ChevronLeft, ChevronRight, Star, Instagram, Film, Tv, Volume2, VolumeX } from "lucide-react";
 import YouTube from "react-youtube";
 import ReactPlayer from "react-player";
 const ReactPlayerComponent = ReactPlayer as any;
@@ -45,6 +45,55 @@ export default function App() {
   const [isLoadingSources, setIsLoadingSources] = useState(false);
   const [activeChannel, setActiveChannel] = useState<{name: string, url: string, type?: string, drm?: any} | null>(null);
   const [channels, setChannels] = useState<any[]>([]);
+  const [isAnthemMuted, setIsAnthemMuted] = useState(false);
+  const anthemAudioRef = useRef<HTMLAudioElement>(null);
+
+  const toggleAnthemMute = () => {
+    const nextMuted = !isAnthemMuted;
+    setIsAnthemMuted(nextMuted);
+    if (anthemAudioRef.current) {
+      anthemAudioRef.current.muted = nextMuted;
+      if (!nextMuted) {
+        anthemAudioRef.current.play().catch(e => {
+          console.error("Audio playback error:", e);
+        });
+      }
+    }
+  };
+
+  useEffect(() => {
+    if (anthemAudioRef.current) {
+      anthemAudioRef.current.volume = 0.2;
+      if (!isAnthemMuted) {
+        anthemAudioRef.current.play().catch(() => {
+          console.log("Autoplay blocked by browser. Audio will play upon interaction.");
+        });
+      }
+    }
+
+    const handleFirstInteraction = () => {
+      if (anthemAudioRef.current && !isAnthemMuted) {
+        anthemAudioRef.current.play().catch(() => {});
+      }
+      // Remove listeners after first interaction
+      document.removeEventListener('click', handleFirstInteraction);
+      document.removeEventListener('keydown', handleFirstInteraction);
+      document.removeEventListener('touchstart', handleFirstInteraction);
+      document.removeEventListener('scroll', handleFirstInteraction);
+    };
+
+    document.addEventListener('click', handleFirstInteraction);
+    document.addEventListener('keydown', handleFirstInteraction);
+    document.addEventListener('touchstart', handleFirstInteraction);
+    document.addEventListener('scroll', handleFirstInteraction);
+
+    return () => {
+      document.removeEventListener('click', handleFirstInteraction);
+      document.removeEventListener('keydown', handleFirstInteraction);
+      document.removeEventListener('touchstart', handleFirstInteraction);
+      document.removeEventListener('scroll', handleFirstInteraction);
+    };
+  }, [isAnthemMuted]);
 
   useEffect(() => {
     const fetchChannels = async () => {
@@ -451,16 +500,45 @@ export default function App() {
       {/* Main Content */}
       <main className="flex-1 flex flex-col min-w-0 bg-zinc-50 dark:bg-zinc-950 h-screen overflow-hidden relative transition-colors duration-300">
         {activeViewTab === 'Home' && (
-          <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
-            <video
-              src="/france-flag.mp4"
+          <>
+            {/* Local Background Video Player */}
+            <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
+              <video
+                src="/france-flag.mp4"
+                autoPlay
+                muted
+                loop
+                playsInline
+                className="absolute top-1/2 left-1/2 w-full h-full object-cover -translate-x-1/2 -translate-y-1/2 opacity-[0.22] dark:opacity-[0.14]"
+              />
+            </div>
+            {/* Local Background Audio Player */}
+            <audio
+              ref={anthemAudioRef}
+              src="/Kylian Mbappe Dictador Anthem.mp3"
               autoPlay
-              muted
+              muted={isAnthemMuted}
               loop
-              playsInline
-              className="absolute top-1/2 left-1/2 w-full h-full object-cover -translate-x-1/2 -translate-y-1/2 opacity-[0.22] dark:opacity-[0.14]"
             />
-          </div>
+            {/* Floating Audio Toggle Button */}
+            <button
+              onClick={toggleAnthemMute}
+              className="fixed bottom-6 right-6 z-50 p-4 rounded-full bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md border border-zinc-200 dark:border-zinc-800 shadow-lg text-zinc-800 dark:text-zinc-200 hover:scale-105 active:scale-95 transition-all flex items-center justify-center cursor-pointer group"
+              title={isAnthemMuted ? "Unmute French Anthem" : "Mute French Anthem"}
+            >
+              {isAnthemMuted ? (
+                <VolumeX className="w-6 h-6 text-red-500 group-hover:animate-pulse" />
+              ) : (
+                <div className="relative">
+                  <Volume2 className="w-6 h-6 text-[#FF4081]" />
+                  <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-pink-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[#FF4081]"></span>
+                  </span>
+                </div>
+              )}
+            </button>
+          </>
         )}
         {/* Header */}
         <header className="h-16 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between px-6 sticky top-0 z-20">
